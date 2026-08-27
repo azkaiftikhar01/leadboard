@@ -75,6 +75,21 @@ export function Projects() {
                     costs ×{mode?.weight ?? 1} per person
                   </span>
                 </div>
+
+                <div className="card-actions">
+                  <button
+                    className="btn sm"
+                    onClick={(e) => { e.stopPropagation(); setAddingTo(p._id) }}
+                  >
+                    <Icon.plus size={13} /> Task
+                  </button>
+                  <button
+                    className="btn ghost sm"
+                    onClick={(e) => { e.stopPropagation(); setOpen(p) }}
+                  >
+                    People & mode
+                  </button>
+                </div>
               </div>
             )
           })}

@@ -3,6 +3,7 @@ import { api } from '../lib/api.js'
 import { Mic } from '../components/Mic.jsx'
 import { CaptureChips } from '../components/CaptureChips.jsx'
 import { Avatar, Tag, Empty, Spinner, Icon, dueLabel } from '../components/ui.jsx'
+import { QuickTask } from '../components/QuickTask.jsx'
 
 /**
  * The ritual. A pre-filled card stack, never a blank page — a blank page is what
@@ -16,6 +17,8 @@ export function Standup() {
   const [digest, setDigest] = useState(null)
   const [startedAt] = useState(Date.now())
   const [copied, setCopied] = useState(false)
+  const [addingTo, setAddingTo] = useState(null)
+  const [jumping, setJumping] = useState(false)
 
   useEffect(() => { api.standupToday().then(setData) }, [])
 
@@ -62,13 +65,39 @@ export function Standup() {
             {card.project.client} · {i + 1} of {cards.length}
           </div>
         </div>
-        <div className="inline" style={{ gap: 4 }}>
-          {cards.map((_, n) => <i key={n} style={{ width: 20, height: 4, borderRadius: 99, background: n < i ? 'var(--good)' : n === i ? 'var(--accent)' : 'var(--n-4)' }} />)}
+        <div className="inline" style={{ gap: 10 }}>
+          <button className="btn sm" onClick={() => setJumping((v) => !v)} title="Jump to any project">
+            <Icon.projects size={14} /> All projects
+          </button>
+          <button className="btn ghost sm" onClick={() => { location.hash = '#/' }} title="Leave standup — Esc">
+            <Icon.x size={15} /> Leave
+          </button>
         </div>
       </div>
 
+      {jumping && (
+        <div className="jump">
+          {cards.map((c, n) => (
+            <button
+              key={c.project._id}
+              className={`jump-item${n === i ? ' on' : ''}${n < i ? ' seen' : ''}`}
+              onClick={() => { setI(n); setJumping(false) }}
+            >
+              <span className="jump-n">{n < i ? <Icon.check size={12} /> : n + 1}</span>
+              {c.project.name}
+              {c.tasks.length > 0 && <em>{c.tasks.length}</em>}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="panel" style={{ padding: 18 }}>
-        <div className="eyebrow" style={{ margin: "18px 0 8px" }}>Who's on what</div>
+        <div className="row-between" style={{ marginBottom: 4 }}>
+          <div className="eyebrow">Who's on what</div>
+          <button className="btn sm" onClick={() => setAddingTo(card.project._id)}>
+            <Icon.plus size={13} /> Task
+          </button>
+        </div>
         {card.tasks.length === 0 ? (
           <div className="muted" style={{ fontSize: 13 }}>Nothing open on this project.</div>
         ) : (
@@ -113,10 +142,18 @@ export function Standup() {
 
       <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
         <button className="btn ghost" disabled={!i} onClick={() => setI(i - 1)}><Icon.back size={15} /> Back</button>
+        <button className="btn ghost" onClick={next} title="Nothing to say about this one">Skip</button>
         <button className="btn primary" style={{ flex: 1 }} onClick={next}>
           {i === cards.length - 1 ? 'Finish & build digest' : <>Next project <Icon.arrow size={15} /></>}
         </button>
       </div>
+      {addingTo && (
+        <QuickTask
+          project={addingTo}
+          onClose={() => setAddingTo(null)}
+          onDone={() => api.standupToday().then(setData)}
+        />
+      )}
     </div>
   )
 }
