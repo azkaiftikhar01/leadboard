@@ -2,6 +2,18 @@ import mongoose from 'mongoose'
 
 export const TASK_STATES = ['assigned', 'in_progress', 'submitted', 'in_review', 'done', 'dropped']
 
+/**
+ * Three tracks, because his morning page has always had three columns: what the
+ * team owes, what the client owes, and what he owes. Keeping them as one task
+ * list with a track - rather than separate concepts - means one place to look
+ * and one thing to tick.
+ */
+export const TASK_TRACKS = {
+  team: { label: 'Team', hint: 'assigned to a dev' },
+  client: { label: 'Client', hint: 'pending from the client' },
+  lead: { label: 'On me', hint: 'needs my intervention' },
+}
+
 const transitionSchema = new mongoose.Schema(
   {
     from: String,
@@ -19,7 +31,10 @@ const taskSchema = new mongoose.Schema(
     assignee: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
     title: { type: String, required: true, trim: true },
     detail: { type: String, default: '' },
+    track: { type: String, enum: Object.keys(TASK_TRACKS), default: 'team', index: true },
     state: { type: String, enum: TASK_STATES, default: 'assigned', index: true },
+    // who or what we are waiting on, when it is not a dev on the team
+    waitingOnLabel: { type: String, default: '' },
     priority: { type: String, enum: ['low', 'normal', 'high', 'urgent'], default: 'normal' },
     estimateHours: Number,
     dueDate: Date,

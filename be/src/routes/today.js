@@ -1,52 +1,68 @@
 import { Router } from 'express'
 import Task from '../models/Task.js'
-import Blocker from '../models/Blocker.js'
 import Capture from '../models/Capture.js'
 import StandupSession from '../models/StandupSession.js'
+import { teamLoad } from '../lib/load.js'
 
 const r = Router()
 const DAY = 86_400_000
 const dstr = (d) => d.toISOString().slice(0, 10)
 
-/** Everything the tray popover and the tray icon badge need, in one call. */
+/**
+ * The day board. Three tracks, because that is how his paper page was always
+ * laid out: what the team owes, what the client owes, what he owes.
+ */
 r.get('/', async (_req, res) => {
   const riskWindow = new Date(Date.now() + 3 * DAY)
 
-  const [owed, dueSoon, stale, inboxCount, standup, streak] = await Promise.all([
-    Blocker.find({ type: 'waiting_on_me', clearedAt: null })
-      .populate('project', 'name color')
-      .sort('openedAt')
-      .lean({ virtuals: true }),
-    Task.find({ state: { $nin: ['done', 'dropped'] }, dueDate: { $lte: riskWindow } })
+  const [open, inboxCount, standup, streak, load] = await Promise.all([
+    Task.find({ state: { $nin: ['done', 'dropped'] } })
       .populate('assignee', 'name avatarColor')
-      .populate('project', 'name color')
+      .populate('project', 'name color mode')
       .sort('dueDate')
-      .lean({ virtuals: true }),
-    Task.find({ state: 'in_progress', startedAt: { $lte: new Date(Date.now() - 4 * DAY) } })
-      .populate('assignee', 'name avatarColor')
-      .populate('project', 'name color')
       .lean({ virtuals: true }),
     Capture.countDocuments({ status: { $in: ['pending', 'partial', 'failed'] } }),
     StandupSession.findOne({ date: dstr(new Date()) }).lean(),
     currentStreak(),
+    teamLoad(),
   ])
+
+  const doneToday = await Task.countDocuments({
+    state: 'done',
+    doneAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+  })
+
+  const byTrack = {
+    lead: open.filter((t) => t.track === 'lead'),
+    client: open.filter((t) => t.track === 'client'),
+    team: open.filter((t) => t.track === 'team'),
+  }
+  const dueSoon = open.filter((t) => t.dueDate && new Date(t.dueDate) <= riskWindow)
+  const stale = open.filter((t) => t.track === 'team' && (t.daysOnTask ?? 0) >= 4)
 
   res.json({
     date: dstr(new Date()),
     standupDone: Boolean(standup?.completed),
     streak,
     inboxCount,
-    owed,
+    doneToday,
+    tracks: byTrack,
     dueSoon,
     stale,
-    // what the tray icon renders without opening anything
-    badge: { owed: owed.length, atRisk: dueSoon.length, inbox: inboxCount },
+    load: load.map((l) => ({
+      user: { _id: l.user._id, name: l.user.name, avatarColor: l.user.avatarColor },
+      loadPercent: l.loadPercent,
+      band: l.band.key,
+      headroom: l.headroom,
+      openTasks: l.openTasks,
+    })),
+    badge: { owed: byTrack.lead.length, atRisk: dueSoon.length, inbox: inboxCount },
   })
 })
 
 /** Consecutive weekdays with a completed standup. The loss-aversion hook. */
 async function currentStreak() {
-  const sessions = await StandupSession.find({ completed: true }).sort('-date').limit(60).lean()
+  const sessions = await StandupSession.find({ completed: true }).sort('-date').limit(90).lean()
   const done = new Set(sessions.map((s) => s.date))
   let streak = 0
   const cursor = new Date()

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { api } from '../lib/api.js'
 import { Mic } from '../components/Mic.jsx'
 import { CaptureChips } from '../components/CaptureChips.jsx'
-import { Avatar, Pill, Empty, dayLabel } from '../components/bits.jsx'
+import { Avatar, Tag, Empty, dueLabel } from '../components/ui.jsx'
 
 /**
  * The ritual. A pre-filled card stack, never a blank page — a blank page is what
@@ -55,53 +55,50 @@ export function Standup() {
 
   return (
     <div>
-      <div className="stack-head">
+      <div className="page-head">
         <div>
           <h1>{card.project.name}</h1>
-          <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>
+          <div className="sub">
             {card.project.client} · {i + 1} of {cards.length}
           </div>
         </div>
-        <div className="progress">
-          {cards.map((_, n) => <i key={n} className={n < i ? 'done' : n === i ? 'on' : ''} />)}
+        <div className="inline" style={{ gap: 4 }}>
+          {cards.map((_, n) => <i key={n} style={{ width: 20, height: 4, borderRadius: 99, background: n < i ? 'var(--good)' : n === i ? 'var(--accent)' : 'var(--n-4)' }} />)}
         </div>
       </div>
 
-      <div className="project-card">
-        <div className="section-title">Who's on what</div>
+      <div className="panel" style={{ padding: 18 }}>
+        <div className="eyebrow" style={{ margin: "18px 0 8px" }}>Who's on what</div>
         {card.tasks.length === 0 ? (
           <div className="muted" style={{ fontSize: 13 }}>Nothing open on this project.</div>
         ) : (
           card.tasks.map((t) => {
-            const d = dayLabel(t.dueDate)
+            const d = dueLabel(t.dueDate)
             return (
-              <div className="row" key={t._id}>
+              <div className="task" key={t._id}>
                 <Avatar user={t.assignee} />
-                <div className="grow">
-                  <div className="title">{t.title}</div>
-                  <div className="sub">
+                <div className="body">
+                  <div className="t">{t.title}</div>
+                  <div className="m">
                     {t.assignee?.name || 'unassigned'} · {t.state.replace('_', ' ')}
                     {t.daysOnTask != null && ` · day ${t.daysOnTask}`}
                   </div>
                 </div>
-                {t.daysOnTask >= 3 && <Pill tone="amber">stalled</Pill>}
-                {d && <Pill tone={d.tone}>{d.text}</Pill>}
+                {t.daysOnTask >= 3 && <Tag tone="amber">stalled</Tag>}
+                {d && <Tag tone={d.tone}>{d.text}</Tag>}
               </div>
             )
           })
         )}
 
-        <div className="section-title">Blocked on</div>
-        <BlockerLane label="a dev" rows={card.blockers.waitingOnDev} tone="amber" />
-        <BlockerLane label="the client" rows={card.blockers.waitingOnClient} tone="blue" />
-        <BlockerLane label="me" rows={card.blockers.waitingOnMe} tone="red" />
-        {!card.blockers.waitingOnDev.length &&
-          !card.blockers.waitingOnClient.length &&
-          !card.blockers.waitingOnMe.length && (
-            <div className="muted" style={{ fontSize: 13 }}>Nothing blocked.</div>
-          )}
+        <div className="eyebrow" style={{ margin: "18px 0 8px" }}>Blocked on</div>
+        <BlockerLane label="client" rows={card.blockers.waitingOnClient} tone="blue" />
+        <BlockerLane label="on me" rows={card.blockers.waitingOnMe} tone="red" />
+        {!card.blockers.waitingOnClient.length && !card.blockers.waitingOnMe.length && (
+          <div className="muted" style={{ fontSize: 13 }}>Nothing blocked.</div>
+        )}
 
-        <div className="section-title">Say what changed</div>
+        <div className="eyebrow" style={{ margin: "18px 0 8px" }}>Say what changed</div>
         <Mic
           source="standup"
           project={card.project._id}
@@ -129,12 +126,13 @@ function BlockerLane({ label, rows, tone }) {
   return (
     <div style={{ marginBottom: 6 }}>
       {rows.map((b) => (
-        <div className="row" key={b._id}>
-          <Pill tone={tone}>{label}</Pill>
-          <div className="grow">
-            <div className="title">{b.item}</div>
-            <div className="sub">
-              {b.waitingOn?.name || b.waitingOnLabel || '—'} · {Math.max(1, Math.round(b.ageHours / 24))}d open
+        <div className="task" key={b._id}>
+          <Tag tone={tone}>{label}</Tag>
+          <div className="body">
+            <div className="t">{b.title || b.item}</div>
+            <div className="m">
+              {b.waitingOnLabel || b.assignee?.name || '—'}
+              {b.daysOnTask != null && ` · ${b.daysOnTask}d open`}
             </div>
           </div>
         </div>
@@ -152,7 +150,7 @@ function Digest({ digest, copied, setCopied }) {
   }
   return (
     <div>
-      <div className="topbar">
+      <div className="page-head">
         <h1>🎉 Standup done</h1>
         <button className="btn primary" onClick={copy}>{copied ? 'Copied ✓' : 'Copy for Slack'}</button>
       </div>
@@ -169,15 +167,15 @@ function Digest({ digest, copied, setCopied }) {
 function Lane({ title, rows = [], render, tone }) {
   return (
     <>
-      <div className="section-title">{title} · {rows.length}</div>
+      <div className="eyebrow" style={{ margin: "18px 0 8px" }}>{title} · {rows.length}</div>
       {rows.length === 0 ? (
         <div className="muted" style={{ fontSize: 13, paddingBottom: 6 }}>Clear.</div>
       ) : (
-        <div className="card tight">
+        <div className="stack" style={{ gap: 2 }}>
           {rows.map((row, n) => (
-            <div className="row" key={n}>
-              <Pill tone={tone}>{row.project || '—'}</Pill>
-              <div className="grow"><div className="title">{render(row)}</div></div>
+            <div className="task" key={n}>
+              <Tag tone={tone}>{row.project || '—'}</Tag>
+              <div className="body"><div className="t">{render(row)}</div></div>
             </div>
           ))}
         </div>

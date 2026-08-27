@@ -3,6 +3,7 @@ import User from '../models/User.js'
 import Task from '../models/Task.js'
 import ReworkEvent from '../models/ReworkEvent.js'
 import { scorecard, leadScorecard } from '../lib/scoring.js'
+import { teamLoad, whoHasBandwidth } from '../lib/load.js'
 
 const r = Router()
 
@@ -11,8 +12,21 @@ r.get('/', async (_req, res) => {
 })
 
 r.post('/', async (req, res) => {
-  res.status(201).json(await User.create(req.body))
+  const { name, aliases, ...rest } = req.body
+  // spoken names are how the capture parser finds people, so seed the alias
+  // list from the name rather than making him type it twice
+  const list = (aliases?.length ? aliases : [name]).map((a) => String(a).toLowerCase().trim())
+  res.status(201).json(await User.create({ ...rest, name, aliases: list }))
 })
+
+r.delete('/:id', async (req, res) => {
+  // never hard-delete: their history is what the registry is made of
+  res.json(await User.findByIdAndUpdate(req.params.id, { active: false }, { new: true }))
+})
+
+/** The bandwidth board. */
+r.get('/load/all', async (_req, res) => res.json(await teamLoad()))
+r.get('/load/available', async (_req, res) => res.json(await whoHasBandwidth()))
 
 r.patch('/:id', async (req, res) => {
   res.json(await User.findByIdAndUpdate(req.params.id, req.body, { new: true }))

@@ -1,7 +1,6 @@
 import { Router } from 'express'
 import Project from '../models/Project.js'
 import Task from '../models/Task.js'
-import Blocker from '../models/Blocker.js'
 import StandupSession from '../models/StandupSession.js'
 
 const r = Router()
@@ -21,29 +20,27 @@ r.get('/today', async (_req, res) => {
 
   const cards = await Promise.all(
     projects.map(async (project) => {
-      const [tasks, blockers, movedSince] = await Promise.all([
+      const [all, movedSince] = await Promise.all([
         Task.find({ project: project._id, state: { $nin: ['done', 'dropped'] } })
           .populate('assignee', 'name avatarColor')
           .sort('dueDate')
-          .lean({ virtuals: true }),
-        Blocker.find({ project: project._id, clearedAt: null })
-          .populate('waitingOn', 'name')
           .lean({ virtuals: true }),
         Task.find({ project: project._id, 'history.at': { $gte: yesterday } })
           .select('title state')
           .lean(),
       ])
 
+      const tasks = all.filter((t) => t.track === 'team')
       const stalled = tasks.filter((t) => (t.daysOnTask ?? 0) >= 3)
       return {
         project,
         tasks,
         blockers: {
-          waitingOnDev: blockers.filter((b) => b.type === 'waiting_on_dev'),
-          waitingOnClient: blockers.filter((b) => b.type === 'waiting_on_client'),
-          waitingOnMe: blockers.filter((b) => b.type === 'waiting_on_me'),
+          waitingOnDev: [],
+          waitingOnClient: all.filter((t) => t.track === 'client'),
+          waitingOnMe: all.filter((t) => t.track === 'lead'),
         },
-        deadlines: tasks.filter((t) => t.dueDate && new Date(t.dueDate) <= riskWindow),
+        deadlines: all.filter((t) => t.dueDate && new Date(t.dueDate) <= riskWindow),
         movedSinceYesterday: movedSince.length,
         stalled,
       }
@@ -60,9 +57,9 @@ r.get('/today', async (_req, res) => {
 /** Ends the ritual. The digest is the payback paper never gave him. */
 r.post('/complete', async (req, res) => {
   const date = dstr(new Date())
-  const blockers = await Blocker.find({ clearedAt: null })
-    .populate('waitingOn', 'name')
+  const open = await Task.find({ state: { $nin: ['done', 'dropped'] }, track: { $in: ['client', 'lead'] } })
     .populate('project', 'name')
+    .populate('assignee', 'name')
     .lean()
   const atRiskTasks = await Task.find({
     state: { $nin: ['done', 'dropped'] },
@@ -72,16 +69,12 @@ r.post('/complete', async (req, res) => {
     .populate('assignee', 'name')
     .lean({ virtuals: true })
 
-  const askFrom = blockers
-    .filter((b) => b.type !== 'waiting_on_me')
-    .map((b) => ({
-      who: b.waitingOn?.name || b.waitingOnLabel || 'client',
-      item: b.item,
-      project: b.project?.name,
-    }))
-  const iOwe = blockers
-    .filter((b) => b.type === 'waiting_on_me')
-    .map((b) => ({ who: b.waitingOnLabel || 'team', item: b.item, project: b.project?.name }))
+  const askFrom = open
+    .filter((t) => t.track === 'client')
+    .map((t) => ({ who: t.waitingOnLabel || 'client', item: t.title, project: t.project?.name }))
+  const iOwe = open
+    .filter((t) => t.track === 'lead')
+    .map((t) => ({ who: t.waitingOnLabel || 'team', item: t.title, project: t.project?.name }))
   const atRisk = atRiskTasks.map((t) => ({
     what: t.title,
     project: t.project?.name,

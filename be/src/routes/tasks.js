@@ -1,10 +1,25 @@
 import { Router } from 'express'
-import Task from '../models/Task.js'
+import Task, { TASK_TRACKS } from '../models/Task.js'
 import Delivery from '../models/Delivery.js'
 import ReworkEvent, { REWORK_REASONS } from '../models/ReworkEvent.js'
 import { transitionTask } from '../lib/apply.js'
 
 const r = Router()
+
+r.get('/tracks', (_req, res) =>
+  res.json(Object.entries(TASK_TRACKS).map(([key, v]) => ({ key, ...v })))
+)
+
+/** The review queue: everything handed back to him, waiting on a verdict. */
+r.get('/review', async (_req, res) => {
+  res.json(
+    await Task.find({ state: { $in: ['submitted', 'in_review'] } })
+      .populate('assignee', 'name avatarColor')
+      .populate('project', 'name color mode')
+      .sort('-updatedAt')
+      .lean({ virtuals: true })
+  )
+})
 
 r.get('/reopen-reasons', (_req, res) => {
   res.json(
@@ -16,7 +31,9 @@ r.get('/', async (req, res) => {
   const q = {}
   if (req.query.project) q.project = req.query.project
   if (req.query.assignee) q.assignee = req.query.assignee
+  if (req.query.track) q.track = req.query.track
   if (req.query.open === 'true') q.state = { $nin: ['done', 'dropped'] }
+  if (req.query.due) q.dueDate = { $lte: new Date(req.query.due) }
   res.json(
     await Task.find(q)
       .populate('assignee', 'name avatarColor')
@@ -36,6 +53,21 @@ r.post('/', async (req, res) => {
 
 r.patch('/:id', async (req, res) => {
   res.json(await Task.findByIdAndUpdate(req.params.id, req.body, { new: true }))
+})
+
+/** One tap from anywhere in the app: done, or back to open. */
+r.post('/:id/toggle', async (req, res) => {
+  const task = await Task.findById(req.params.id)
+  if (!task) return res.status(404).json({ error: 'not found' })
+  const to = task.state === 'done' ? 'in_progress' : 'done'
+  const result = await transitionTask(task, to, { by: req.body.actor })
+  if (to === 'done' && task.track === 'team') {
+    await Delivery.create({
+      task: task._id, project: task.project, owner: task.assignee,
+      title: task.title, promisedDate: task.dueDate, actualDate: new Date(),
+    })
+  }
+  res.json(result)
 })
 
 r.post('/:id/transition', async (req, res) => {

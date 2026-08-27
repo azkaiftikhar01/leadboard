@@ -1,5 +1,4 @@
 import Task from '../models/Task.js'
-import Blocker from '../models/Blocker.js'
 import Note from '../models/Note.js'
 
 /**
@@ -14,6 +13,7 @@ export async function applyCard(card, { leadId, captureId }) {
     const task = await Task.create({
       project: p.project,
       assignee: p.assignee,
+      track: 'team',
       title: p.title,
       dueDate: p.dueDate ? new Date(p.dueDate) : undefined,
       priority: p.priority || 'normal',
@@ -30,30 +30,35 @@ export async function applyCard(card, { leadId, captureId }) {
     return transitionTask(task, p.newState, { by: leadId, note: p.note })
   }
 
+  // a blocker is a task on whoever we are waiting on - same list, same tick.
+  // One place to look beats three concepts he has to remember to check.
   if (card.kind === 'blocker') {
-    const blocker = await Blocker.create({
-      task: p.task,
+    const track = p.type === 'waiting_on_client' ? 'client' : p.type === 'waiting_on_me' ? 'lead' : 'team'
+    const task = await Task.create({
       project: p.project,
-      type: p.type,
-      waitingOn: p.waitingOn,
-      waitingOnLabel: p.waitingOnLabel,
-      item: p.item,
-      raisedBy: leadId,
+      assignee: track === 'team' ? p.waitingOn : null,
+      track,
+      title: p.item,
+      waitingOnLabel: track === 'team' ? '' : p.waitingOnLabel || 'client',
+      state: 'assigned',
+      createdFromCapture: captureId,
+      history: [{ from: null, to: 'assigned', by: leadId }],
     })
-    return { ref: blocker._id, model: 'Blocker' }
+    return { ref: task._id, model: 'Task' }
   }
 
   if (card.kind === 'owed') {
-    // an owed item is just a blocker pointed at the lead - same lane, same clock
-    const blocker = await Blocker.create({
+    const task = await Task.create({
       project: p.project,
-      type: 'waiting_on_me',
-      waitingOn: leadId,
-      waitingOnLabel: p.toSpoken ? `for ${p.toSpoken}` : undefined,
-      item: p.item,
-      raisedBy: leadId,
+      track: 'lead',
+      title: p.item,
+      waitingOnLabel: p.toSpoken ? `for ${p.toSpoken}` : '',
+      dueDate: p.dueDate ? new Date(p.dueDate) : undefined,
+      state: 'assigned',
+      createdFromCapture: captureId,
+      history: [{ from: null, to: 'assigned', by: leadId }],
     })
-    return { ref: blocker._id, model: 'Blocker' }
+    return { ref: task._id, model: 'Task' }
   }
 
   if (card.kind === 'note') {
