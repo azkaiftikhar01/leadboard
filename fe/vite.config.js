@@ -5,6 +5,6 @@ export default defineConfig({
   plugins: [react()],
   // relative base so the same build loads from file:// inside Electron
   base: './',
-  server: { port: 5173, strictPort: true },
+  server: { port: 5180, strictPort: true },
   build: { outDir: 'dist', emptyOutDir: true },
 })

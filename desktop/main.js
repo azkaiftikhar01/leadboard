@@ -6,7 +6,7 @@ const path = require('node:path')
 
 const DEV = process.env.LEADBOARD_DEV === '1'
 const API = process.env.LEADBOARD_API || 'http://localhost:4000/api'
-const RENDERER = DEV ? 'http://localhost:5173' : `file://${path.join(__dirname, '../fe/dist/index.html')}`
+const RENDERER = DEV ? 'http://localhost:5180' : `file://${path.join(__dirname, '../fe/dist/index.html')}`
 
 // he does standup first thing; this is the alarm clock for the streak
 const STANDUP_HOUR = Number(process.env.LEADBOARD_STANDUP_HOUR || 9)

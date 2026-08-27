@@ -35,7 +35,7 @@ cd desktop && npm install && npm run dev
 
 The tray icon appears in the menu bar. `⌥Space` captures from anywhere,
 `⌘⇧L` opens the main window. For a browser-only run, skip step 3 and open
-`http://localhost:5173`.
+`http://localhost:5180`.
 
 ### What costs nothing
 
