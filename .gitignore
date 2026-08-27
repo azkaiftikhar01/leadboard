@@ -9,3 +9,4 @@ build/
 coverage/
 .vite/
 uploads/
+dist_electron/

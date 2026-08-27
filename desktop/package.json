@@ -1,0 +1,36 @@
+{
+  "name": "leadboard-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Leadboard menu-bar app",
+  "main": "main.js",
+  "scripts": {
+    "dev": "LEADBOARD_DEV=1 electron .",
+    "start": "electron .",
+    "dist": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.calcite.leadboard",
+    "productName": "Leadboard",
+    "files": [
+      "main.js",
+      "preload.js",
+      "../fe/dist/**"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": "dmg",
+      "extendInfo": {
+        "LSUIElement": true,
+        "NSMicrophoneUsageDescription": "Leadboard records your spoken standup updates so it can turn them into tasks."
+      }
+    }
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}
