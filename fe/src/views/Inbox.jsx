@@ -1,15 +1,27 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { CaptureChips } from '../components/CaptureChips.jsx'
-import { Empty, EmptyArt, Tag, Spinner } from '../components/ui.jsx'
+import { Empty, EmptyArt, Tag, Spinner, Icon } from '../components/ui.jsx'
+import { useConfirm } from '../components/Confirm.jsx'
 
 /**
  * Everything the parser could not place with confidence. It lands here rather
  * than being guessed at — one wrong silent guess costs more trust than an extra tap.
  */
 export function Inbox() {
+  const confirm = useConfirm()
   const [items, setItems] = useState(null)
   const load = () => api.inbox().then(setItems)
+
+  const bin = async (c) => {
+    const ok = await confirm({
+      title: 'Discard this capture?',
+      body: 'The transcript and everything still unconfirmed in it will be deleted.',
+      danger: 'Discard',
+      onConfirm: () => api.deleteCapture(c._id),
+    })
+    if (ok) load()
+  }
   useEffect(() => { load() }, [])
 
   if (!items) return <Spinner />
@@ -41,6 +53,9 @@ export function Inbox() {
                 <div className="inline" style={{ gap: 6 }}>
                   {c.parser && <Tag>{c.parser}</Tag>}
                   {c.status === 'failed' && <Tag tone="red">{c.error}</Tag>}
+                  <button className="row-del" onClick={() => bin(c)} title="Discard capture">
+                    <Icon.trash size={14} />
+                  </button>
                 </div>
               </div>
               <div className="panel-body">

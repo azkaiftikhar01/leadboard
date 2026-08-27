@@ -31,6 +31,8 @@ export const api = {
   addPerson: (b) => req('/people', { method: 'POST', body: JSON.stringify(b) }),
   patchPerson: (id, b) => req(`/people/${id}`, { method: 'PATCH', body: JSON.stringify(b) }),
   removePerson: (id) => req(`/people/${id}`, { method: 'DELETE' }),
+  deletePerson: (id) => req(`/people/${id}?permanent=true`, { method: 'DELETE' }),
+  personImpact: (id) => req(`/people/${id}/impact`),
   scorecard: (id) => req(`/people/${id}/scorecard`),
   rework: (id) => req(`/people/${id}/rework`),
   // projects
@@ -39,6 +41,8 @@ export const api = {
   addProject: (b) => req('/projects', { method: 'POST', body: JSON.stringify(b) }),
   patchProject: (id, b) => req(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(b) }),
   archiveProject: (id) => req(`/projects/${id}`, { method: 'DELETE' }),
+  deleteProject: (id) => req(`/projects/${id}?permanent=true`, { method: 'DELETE' }),
+  projectImpact: (id) => req(`/projects/${id}/impact`),
   setMember: (pid, uid, b) => req(`/projects/${pid}/members/${uid}`, { method: 'PUT', body: JSON.stringify(b) }),
   removeMember: (pid, uid) => req(`/projects/${pid}/members/${uid}`, { method: 'DELETE' }),
   board: (id) => req(`/projects/${id}/board`),
@@ -53,6 +57,7 @@ export const api = {
   tasks: (q = '') => req(`/tasks${q}`),
   addTask: (b) => req('/tasks', { method: 'POST', body: JSON.stringify(b) }),
   toggleTask: (id) => req(`/tasks/${id}/toggle`, { method: 'POST', body: JSON.stringify({}) }),
+  deleteTask: (id) => req(`/tasks/${id}`, { method: 'DELETE' }),
   reviewQueue: () => req('/tasks/review'),
   reopenReasons: () => req('/tasks/reopen-reasons'),
   transition: (id, body) => req(`/tasks/${id}/transition`, { method: 'POST', body: JSON.stringify(body) }),
@@ -62,6 +67,7 @@ export const api = {
   standupToday: () => req('/standup/today'),
   completeStandup: (body) => req('/standup/complete', { method: 'POST', body: JSON.stringify(body) }),
   inbox: () => req('/captures/inbox'),
+  deleteCapture: (id) => req(`/captures/${id}`, { method: 'DELETE' }),
   applyCard: (cid, card, payload) =>
     req(`/captures/${cid}/cards/${card}/apply`, { method: 'POST', body: JSON.stringify({ payload }) }),
   discardCard: (cid, card) => req(`/captures/${cid}/cards/${card}/discard`, { method: 'POST' }),

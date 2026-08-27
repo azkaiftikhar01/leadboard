@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { Avatar, Tag, Empty, EmptyArt, Modal, Field, LoadMeter, Spinner, Dial, Icon } from '../components/ui.jsx'
+import { useConfirm } from '../components/Confirm.jsx'
 
 const BAND_LABEL = { free: 'Has room', ok: 'Comfortable', full: 'Full', over: 'Overloaded' }
 
@@ -140,13 +141,30 @@ function AddDev({ onClose, onSaved }) {
 }
 
 function DevDetail({ row, onClose, onChanged }) {
+  const confirm = useConfirm()
   const [card, setCard] = useState(null)
   useEffect(() => { api.scorecard(row.user._id).then(setCard) }, [row.user._id])
 
   const remove = async () => {
-    await api.removePerson(row.user._id)
-    onChanged()
-    onClose()
+    const impact = await api.personImpact(row.user._id).catch(() => ({ open: 0, awards: 0, rework: 0 }))
+    const ok = await confirm({
+      title: `Remove ${row.user.name}?`,
+      body: impact.open
+        ? `They still have ${impact.open} open task${impact.open === 1 ? '' : 's'}, which will be left unassigned.`
+        : 'They have nothing open right now.',
+      danger: 'Delete permanently',
+      consequences: [
+        { text: `${impact.awards} award${impact.awards === 1 ? '' : 's'} and ${impact.rework} rework event${impact.rework === 1 ? '' : 's'} erased`, kept: false },
+        { text: 'Their open tasks stay, unassigned', kept: true },
+      ],
+      // taking someone off the team should not require destroying their record
+      alternative: {
+        label: 'Just deactivate',
+        run: async () => { await api.removePerson(row.user._id); onChanged(); onClose() },
+      },
+      onConfirm: async () => { await api.deletePerson(row.user._id); onChanged(); onClose() },
+    })
+    if (ok) onClose()
   }
 
   return (
@@ -156,7 +174,7 @@ function DevDetail({ row, onClose, onChanged }) {
       onClose={onClose}
       foot={
         <>
-          <button className="btn danger" onClick={remove}>Remove from team</button>
+          <button className="btn danger" onClick={remove}><Icon.trash size={14} /> Remove</button>
           <button className="btn" onClick={onClose}>Close</button>
         </>
       }

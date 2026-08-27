@@ -98,8 +98,17 @@ export function useCapture({ source = 'window', project } = {}) {
     catch (e) { setError(e.message); setStatus(null) }
   }, [recorder, speech, whisper, useBrowser, speaking, send])
 
+  /** Get out of the way: stop a live listen, drop an error, close the sheet. */
+  const dismiss = useCallback(async () => {
+    if (speaking) { setSpeaking(false); await speech.stop() }
+    if (recorder.state === 'recording') await recorder.stop()
+    setError(null)
+    setStatus(null)
+    setCapture(null)
+  }, [speaking, speech, recorder])
+
   return {
-    toggle, live, error, status, capture, setCapture,
+    toggle, dismiss, live, error, status, capture, setCapture,
     level: recorder.level,
     seconds: recorder.seconds,
     interim: speech.interim,

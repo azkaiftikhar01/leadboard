@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { Avatar, Tag, Empty, EmptyArt, Modal, Field, Spinner, Icon } from '../components/ui.jsx'
 import { QuickTask } from '../components/QuickTask.jsx'
+import { useConfirm } from '../components/Confirm.jsx'
 
 /**
  * Mode is the important control here. It decides how much of a dev's week the
@@ -164,7 +165,30 @@ function NewProject({ modes, onClose, onSaved }) {
 }
 
 function ProjectDetail({ project, modes, people, onClose, onChanged, onAddTask }) {
+  const confirm = useConfirm()
   const [busy, setBusy] = useState(null)
+
+  const removeProject = async () => {
+    const impact = await api.projectImpact(project._id).catch(() => ({ tasks: 0, open: 0 }))
+    const ok = await confirm({
+      title: `Delete ${project.name}?`,
+      body: impact.tasks
+        ? `This project has ${impact.tasks} task${impact.tasks === 1 ? '' : 's'}${impact.open ? `, ${impact.open} still open` : ''}.`
+        : 'This project has no tasks on it.',
+      danger: 'Delete permanently',
+      consequences: [
+        { text: `${impact.tasks} task${impact.tasks === 1 ? '' : 's'} deleted with it`, kept: false },
+        { text: 'Scores and rework already recorded stay on people’s records', kept: true },
+      ],
+      // archiving is the safer default and it is reversible, so offer it here
+      alternative: {
+        label: 'Archive instead',
+        run: async () => { await api.archiveProject(project._id); onChanged(); onClose() },
+      },
+      onConfirm: async () => { await api.deleteProject(project._id); onChanged(); onClose() },
+    })
+    if (ok) onClose()
+  }
   const memberIds = new Set(project.members?.map((m) => String(m.user?._id)))
   const available = people.filter((p) => !memberIds.has(String(p._id)))
   const mode = modes.find((m) => m.key === project.mode)
@@ -184,6 +208,9 @@ function ProjectDetail({ project, modes, people, onClose, onChanged, onAddTask }
       wide
       foot={
         <>
+          <button className="btn danger" onClick={removeProject}>
+            <Icon.trash size={14} /> Delete
+          </button>
           <button className="btn" onClick={() => onAddTask(project._id)}>
             <Icon.plus size={14} /> Add a task
           </button>

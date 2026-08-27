@@ -2,6 +2,7 @@ import { Router } from 'express'
 import User from '../models/User.js'
 import Task from '../models/Task.js'
 import ReworkEvent from '../models/ReworkEvent.js'
+import Award from '../models/Award.js'
 import { scorecard, leadScorecard } from '../lib/scoring.js'
 import { teamLoad, whoHasBandwidth } from '../lib/load.js'
 
@@ -19,9 +20,28 @@ r.post('/', async (req, res) => {
   res.status(201).json(await User.create({ ...rest, name, aliases: list }))
 })
 
+r.get('/:id/impact', async (req, res) => {
+  const [open, awards, rework] = await Promise.all([
+    Task.countDocuments({ assignee: req.params.id, state: { $nin: ['done', 'dropped'] } }),
+    Award.countDocuments({ subject: req.params.id }),
+    ReworkEvent.countDocuments({ subject: req.params.id }),
+  ])
+  res.json({ open, awards, rework })
+})
+
 r.delete('/:id', async (req, res) => {
-  // never hard-delete: their history is what the registry is made of
-  res.json(await User.findByIdAndUpdate(req.params.id, { active: false }, { new: true }))
+  // deactivating keeps their whole record, which is the point of having one;
+  // permanent removal is opt-in and takes the awards and rework with it
+  if (req.query.permanent !== 'true') {
+    return res.json(await User.findByIdAndUpdate(req.params.id, { active: false }, { new: true }))
+  }
+  await Promise.all([
+    Award.deleteMany({ subject: req.params.id }),
+    ReworkEvent.deleteMany({ subject: req.params.id }),
+    Task.updateMany({ assignee: req.params.id }, { assignee: null }),
+  ])
+  await User.findByIdAndDelete(req.params.id)
+  res.json({ ok: true })
 })
 
 /** The bandwidth board. */

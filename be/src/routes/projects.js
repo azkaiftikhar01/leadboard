@@ -25,8 +25,28 @@ r.post('/', async (req, res) => {
   res.status(201).json(await created.populate('members.user', 'name avatarColor title'))
 })
 
+/** What a delete would actually cost, so the dialog can say it out loud. */
+r.get('/:id/impact', async (req, res) => {
+  const [tasks, open] = await Promise.all([
+    Task.countDocuments({ project: req.params.id }),
+    Task.countDocuments({ project: req.params.id, state: { $nin: ['done', 'dropped'] } }),
+  ])
+  res.json({ tasks, open })
+})
+
 r.delete('/:id', async (req, res) => {
-  res.json(await Project.findByIdAndUpdate(req.params.id, { status: 'archived' }, { new: true }))
+  // archive is the default because it keeps every task and score intact and is
+  // reversible; permanent is opt-in and takes the tasks with it
+  if (req.query.permanent !== 'true') {
+    return res.json(await Project.findByIdAndUpdate(req.params.id, { status: 'archived' }, { new: true }))
+  }
+  const removed = await Task.deleteMany({ project: req.params.id })
+  await Project.findByIdAndDelete(req.params.id)
+  res.json({ ok: true, tasksDeleted: removed.deletedCount })
+})
+
+r.post('/:id/restore', async (req, res) => {
+  res.json(await Project.findByIdAndUpdate(req.params.id, { status: 'active' }, { new: true }))
 })
 
 /** Put someone on a project, or change what share of their week it takes. */

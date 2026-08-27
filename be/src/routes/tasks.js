@@ -55,6 +55,18 @@ r.patch('/:id', async (req, res) => {
   res.json(await Task.findByIdAndUpdate(req.params.id, req.body, { new: true }))
 })
 
+/**
+ * Deletes the task, and deliberately leaves its rework events and deliveries
+ * behind. Those are somebody's record - a task disappearing should not quietly
+ * subtract points a person already earned or lost.
+ */
+r.delete('/:id', async (req, res) => {
+  const task = await Task.findById(req.params.id)
+  if (!task) return res.status(404).json({ error: 'not found' })
+  await Task.deleteOne({ _id: task._id })
+  res.json({ ok: true })
+})
+
 /** One tap from anywhere in the app: done, or back to open. */
 r.post('/:id/toggle', async (req, res) => {
   const task = await Task.findById(req.params.id)

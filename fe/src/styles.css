@@ -1149,3 +1149,91 @@ input::placeholder { color: var(--text-3); }
   .btn:hover:not(:disabled), .award:hover:not(:disabled) { transform: none; }
   .reason:hover { transform: none; }
 }
+
+/* ============================================================
+   Confirm
+   ============================================================ */
+.confirm {
+  background: var(--s-1); border: 1px solid var(--line);
+  border-radius: var(--r-lg); box-shadow: var(--sh-3);
+  width: 100%; max-width: 420px; padding: 26px 26px 22px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  animation: rise .2s var(--ease);
+}
+.confirm-ico {
+  width: 46px; height: 46px; border-radius: var(--r-pill);
+  display: grid; place-items: center; margin-bottom: 15px;
+}
+.confirm-ico.danger { background: var(--bad-bg); color: var(--bad); }
+.confirm-ico.warm { background: var(--warn-bg); color: var(--warn); }
+.confirm h2 { font-size: 18px; letter-spacing: -.015em; }
+.confirm p { color: var(--text-2); font-size: 13.5px; margin-top: 8px; line-height: 1.55; }
+
+.confirm-list {
+  list-style: none; width: 100%; margin: 16px 0 4px;
+  display: flex; flex-direction: column; gap: 7px;
+  background: var(--s-2); border-radius: var(--r); padding: 13px 15px;
+}
+.confirm-list li {
+  display: flex; align-items: flex-start; gap: 9px; text-align: left;
+  font-size: 12.5px; color: var(--text-2); line-height: 1.45;
+}
+.confirm-list span {
+  width: 17px; height: 17px; border-radius: var(--r-pill); flex: none;
+  display: grid; place-items: center; margin-top: 1px;
+}
+.confirm-list .keeps { background: var(--good-bg); color: var(--good); }
+.confirm-list .loses { background: var(--bad-bg); color: var(--bad); }
+.confirm-list .loses svg { transform: rotate(45deg); }
+
+.confirm-acts { display: flex; gap: 8px; margin-top: 20px; width: 100%; }
+.confirm-acts .btn { flex: 1; justify-content: center; }
+.btn.confirm-danger {
+  background: var(--bad); border-color: transparent; color: #fff;
+  box-shadow: 0 3px 12px rgb(201 63 82 / .3);
+}
+.btn.confirm-danger:hover:not(:disabled) { filter: brightness(1.07); }
+
+@media (max-width: 640px) {
+  .confirm { max-width: 100%; border-radius: 22px 22px 0 0; padding: 24px 20px calc(20px + env(safe-area-inset-bottom, 0px)); }
+  .confirm-acts { flex-direction: column-reverse; }
+}
+
+/* a delete that only surfaces on hover — present when wanted, quiet otherwise */
+.row-del {
+  width: 28px; height: 28px; border-radius: var(--r-sm); flex: none;
+  display: grid; place-items: center; color: var(--text-3);
+  opacity: 0; transition: all .14s var(--ease);
+}
+.task:hover .row-del, .panel-head .row-del, .row-del:focus-visible { opacity: 1; }
+.row-del:hover { background: var(--bad-bg); color: var(--bad); }
+@media (hover: none) { .row-del { opacity: .55; } }
+
+/* an unresolved chip carries its own fix, rather than being a dead end */
+.chip { align-items: flex-start; }
+.chip .k { margin-top: 2px; }
+.chip .acts { margin-top: 1px; }
+.chip-text { display: block; line-height: 1.4; }
+.chip-fix { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.chip-fix select {
+  width: auto; min-width: 0; max-width: 190px;
+  padding: 5px 9px; font-size: 12px; border-radius: var(--r-sm);
+  background: var(--s-1); border-color: var(--line-2);
+}
+.chip.needs .chip-fix select { border-color: var(--warn); }
+
+.sheet-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px;
+}
+.sheet-x {
+  width: 30px; height: 30px; border-radius: var(--r-pill);
+  display: grid; place-items: center; color: var(--text-3);
+  transition: all .14s var(--ease);
+}
+.sheet-x:hover { background: var(--s-3); color: var(--text); }
+.rec-dot {
+  width: 9px; height: 9px; border-radius: 99px; background: var(--c-warm);
+  animation: rec-pulse 1.3s ease-in-out infinite;
+}
+@keyframes rec-pulse { 0%, 100% { opacity: 1; transform: scale(1) } 50% { opacity: .45; transform: scale(.82) } }

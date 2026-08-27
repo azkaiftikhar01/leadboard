@@ -14,6 +14,7 @@ import { Palette } from './components/Palette.jsx'
 import { CaptureChips } from './components/CaptureChips.jsx'
 import { Icon, Aura } from './components/ui.jsx'
 import { GiveAward } from './components/GiveAward.jsx'
+import { ConfirmProvider } from './components/Confirm.jsx'
 import { QuickTask } from './components/QuickTask.jsx'
 import { useTheme } from './lib/useTheme.js'
 import { useCapture } from './lib/useCapture.js'
@@ -85,6 +86,7 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPaletteOpen((v) => !v) }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'Space') { e.preventDefault(); cap.toggle() }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') { e.preventDefault(); setAdding(true) }
+      if (e.key === 'Escape' && (cap.live || cap.capture || cap.error)) cap.dismiss()
     }
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
@@ -93,7 +95,7 @@ export default function App() {
   if (authed === null) return <div className="lock"><span className="spinner" /></div>
   if (authed === false) return <Lock onIn={() => { setAuthed(true); pull() }} />
 
-  if (view === 'popover') return <div className="popover"><Today /></div>
+  if (view === 'popover') return <ConfirmProvider><div className="popover"><Today /></div></ConfirmProvider>
   if (view === 'capture') return <CaptureOverlay />
 
   const firstRun = counts && !counts.projects && hash === '#/'
@@ -115,6 +117,7 @@ export default function App() {
   ]
 
   return (
+    <ConfirmProvider>
     <div className="shell">
       <Aura />
       <a href="#/" className="brand-corner" aria-label="LeadBoard — Today">
@@ -127,24 +130,39 @@ export default function App() {
       {(cap.live || cap.capture || cap.error || cap.status) && (
         <div className="sheet-wrap">
           <div className="sheet">
-            {cap.error && <div className="err" style={{ marginBottom: 10 }}>{cap.error}</div>}
-            {cap.live && (
-              <div className="row-between" style={{ marginBottom: cap.interim ? 10 : 0 }}>
+            {/* always closable: a sheet he cannot dismiss is a sheet that traps him */}
+            <div className="sheet-head">
+              {cap.live ? (
                 <span className="inline" style={{ gap: 9, color: 'var(--c-warm)' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 99, background: 'var(--c-warm)' }} />
+                  <span className="rec-dot" />
                   <span style={{ fontWeight: 620 }}>Listening</span>
+                  <span className="num dim">
+                    {String(Math.floor(cap.seconds / 60)).padStart(2, '0')}:{String(cap.seconds % 60).padStart(2, '0')}
+                  </span>
                 </span>
-                <span className="num dim">
-                  {String(Math.floor(cap.seconds / 60)).padStart(2, '0')}:{String(cap.seconds % 60).padStart(2, '0')}
+              ) : (
+                <span className="muted" style={{ fontWeight: 600, fontSize: 13 }}>
+                  {cap.error ? 'Nothing recorded' : cap.status ? 'Working on it' : 'Confirm what to add'}
                 </span>
-              </div>
-            )}
+              )}
+              <span className="inline" style={{ gap: 6 }}>
+                {cap.live && (
+                  <button className="btn sm" onClick={cap.toggle}>
+                    <Icon.stop size={13} /> Stop
+                  </button>
+                )}
+                <button className="sheet-x" onClick={cap.dismiss} title="Close — Esc">
+                  <Icon.x size={16} />
+                </button>
+              </span>
+            </div>
+
+            {cap.error && <div className="err" style={{ marginBottom: 10 }}>{cap.error}</div>}
             {cap.interim && <div className="mic-live-text" style={{ maxWidth: 'none', textAlign: 'left' }}>{cap.interim}</div>}
             {cap.status && <div className="inline" style={{ gap: 9 }}><span className="spinner" /><span className="muted">{cap.status}…</span></div>}
             {cap.capture && (
               <div className="stack" style={{ gap: 7 }}>
                 <CaptureChips capture={cap.capture} onChange={(c) => { cap.setCapture(c); pull() }} />
-                <button className="btn ghost sm" onClick={() => cap.setCapture(null)}>Dismiss</button>
               </div>
             )}
           </div>
@@ -163,6 +181,7 @@ export default function App() {
       {giving && <GiveAward onClose={() => setGiving(false)} onDone={pull} />}
       {adding && <QuickTask onClose={() => setAdding(false)} onDone={pull} />}
     </div>
+    </ConfirmProvider>
   )
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
+import { useConfirm } from '../components/Confirm.jsx'
 import { Avatar, Tag, Empty, EmptyArt, Streak, Modal, Field, Spinner, Dial, Spark, Icon, dueLabel } from '../components/ui.jsx'
 
 const TRACKS = [
@@ -14,6 +15,7 @@ const TRACKS = [
  * cheapest thing on the screen.
  */
 export function Today() {
+  const confirm = useConfirm()
   const [data, setData] = useState(null)
   const [adding, setAdding] = useState(null)
   const [err, setErr] = useState(null)
@@ -32,6 +34,20 @@ export function Today() {
     }))
     await api.toggleTask(task._id)
     load()
+  }
+
+  const remove = async (task) => {
+    const ok = await confirm({
+      title: 'Delete this task?',
+      body: `“${task.title}” will be removed from the board.`,
+      danger: 'Delete task',
+      consequences: [
+        { text: 'Any score already recorded against it stays', kept: true },
+        { text: 'The task itself is gone for good', kept: false },
+      ],
+      onConfirm: () => api.deleteTask(task._id),
+    })
+    if (ok) load()
   }
 
   if (err) return <div className="err">{err} — is the API running on :4000?</div>
@@ -77,7 +93,9 @@ export function Today() {
                 {list.length === 0 ? (
                   <Empty icon="check">Clear.</Empty>
                 ) : (
-                  list.map((t) => <TaskRow key={t._id} task={t} track={tr.key} onTick={() => tick(t)} />)
+                  list.map((t) => (
+                    <TaskRow key={t._id} task={t} track={tr.key} onTick={() => tick(t)} onDelete={() => remove(t)} />
+                  ))
                 )}
                 <button className="btn ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => setAdding(tr.key)}>
                   <Icon.plus size={14} /> Add
@@ -93,7 +111,7 @@ export function Today() {
   )
 }
 
-function TaskRow({ task, track, onTick }) {
+function TaskRow({ task, track, onTick, onDelete }) {
   const due = dueLabel(task.dueDate)
   return (
     <div className="task">
@@ -114,6 +132,7 @@ function TaskRow({ task, track, onTick }) {
           {task.reopenCount > 0 && <Tag tone="red">back ×{task.reopenCount}</Tag>}
         </div>
       </div>
+      <button className="row-del" onClick={onDelete} title="Delete task"><Icon.trash size={14} /></button>
     </div>
   )
 }

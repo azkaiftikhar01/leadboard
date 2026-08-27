@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { Avatar, Tag, Empty, EmptyArt, Modal, Spinner, dueLabel } from '../components/ui.jsx'
+import { Avatar, Tag, Empty, EmptyArt, Modal, Spinner, Icon, dueLabel } from '../components/ui.jsx'
 
 /**
  * The verdict queue. Approving is one tap; sending something back costs one
@@ -13,6 +13,7 @@ import { Avatar, Tag, Empty, EmptyArt, Modal, Spinner, dueLabel } from '../compo
  * ambiguous outcome quietly landing on whoever held the ticket.
  */
 export function Review() {
+  const confirm = useConfirm()
   const [queue, setQueue] = useState(null)
   const [reworking, setReworking] = useState(null)
   const [busy, setBusy] = useState(null)
@@ -26,6 +27,20 @@ export function Review() {
       await api.transition(task._id, { to: 'done' })
       load()
     } finally { setBusy(null) }
+  }
+
+  const remove = async (task) => {
+    const ok = await confirm({
+      title: 'Delete this task?',
+      body: `“${task.title}” will be removed without a verdict.`,
+      danger: 'Delete task',
+      consequences: [
+        { text: 'No rework is recorded against anyone', kept: true },
+        { text: 'The task is gone for good', kept: false },
+      ],
+      onConfirm: () => api.deleteTask(task._id),
+    })
+    if (ok) load()
   }
 
   if (!queue) return <Spinner />
@@ -68,6 +83,9 @@ export function Review() {
                     </div>
                   </div>
                   <div className="inline" style={{ gap: 7, flex: 'none' }}>
+                    <button className="row-del" onClick={() => remove(t)} title="Delete task">
+                      <Icon.trash size={14} />
+                    </button>
                     <button className="btn" onClick={() => setReworking(t)}>Send back</button>
                     <button className="btn primary" disabled={busy === t._id} onClick={() => approve(t)}>
                       {busy === t._id ? <span className="spinner" /> : 'Approve'}

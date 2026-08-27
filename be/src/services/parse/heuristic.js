@@ -61,7 +61,14 @@ function nextWeekday(from, target) {
 function findAll(text, records) {
   const found = []
   for (const r of records) {
-    const names = [r.name, ...(r.aliases || [])].filter(Boolean)
+    // nobody says "Azka Iftikhar is on the landing page" out loud - they say
+    // "azka". Match the individual name parts too, longest first so a full
+    // name still wins over a first name when both are present.
+    const parts = String(r.name || '').split(/\s+/).filter((w) => w.length >= 3)
+    const names = [...new Set([r.name, ...(r.aliases || []), ...parts])]
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length)
+
     for (const n of names) {
       const m = text.match(new RegExp(`\\b${esc(n)}(?:'s)?\\b`, 'i'))
       if (m) { found.push({ record: r, matched: m[0], index: m.index }); break }
@@ -121,7 +128,13 @@ function splitOnAnd(clause, alt) {
 export function parseHeuristic(transcript, { people = [], projects = [], today }) {
   const out = { tasks: [], statusUpdates: [], blockers: [], owed: [], notes: [] }
   const devs = people.filter((p) => p.role !== 'lead')
-  const names = devs.flatMap((p) => [p.name, ...(p.aliases || [])])
+  // the splitter needs the same name forms the matcher uses, or "asad finished
+  // X, adil is on Y" stays one clause and the first half is lost
+  const names = devs.flatMap((p) => [
+    p.name,
+    ...(p.aliases || []),
+    ...String(p.name || '').split(/\s+/).filter((w) => w.length >= 3),
+  ]).filter(Boolean)
   const clauses = splitClauses(transcript, names)
 
   // a project named once early usually governs the clauses that follow, and

@@ -84,6 +84,11 @@ r.get('/:id', async (req, res) => {
   res.json(await Capture.findById(req.params.id).lean())
 })
 
+r.delete('/:id', async (req, res) => {
+  await Capture.findByIdAndDelete(req.params.id)
+  res.json({ ok: true })
+})
+
 /** Accept one card. Payload may carry edits the lead made on the chip. */
 r.post('/:id/cards/:cardId/apply', async (req, res) => {
   const capture = await Capture.findById(req.params.id)
