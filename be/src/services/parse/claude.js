@@ -4,7 +4,8 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
 
 const MODEL = 'claude-opus-5'
 
-const client = new Anthropic()
+let client = null
+const getClient = () => (client ??= new Anthropic())
 
 const nullableString = z.string().nullable()
 
@@ -76,8 +77,8 @@ Rules:
   date given in the user message. Output YYYY-MM-DD or null.
 - If he is only recording a thought with no owner or action, it is a note.`
 
-export async function parseTranscript(transcript, { people = [], projects = [], today }) {
-  if (!transcript?.trim()) return { empty: true, ...emptyResult() }
+export async function parseClaude(transcript, { people = [], projects = [], today }) {
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set')
 
   const roster = [
     `Today: ${today}`,
@@ -85,7 +86,7 @@ export async function parseTranscript(transcript, { people = [], projects = [], 
     `Projects: ${projects.map((p) => p.name).join(', ') || '(none on file)'}`,
   ].join('\n')
 
-  const response = await client.messages.parse({
+  const response = await getClient().messages.parse({
     model: MODEL,
     max_tokens: 8000,
     system: SYSTEM,

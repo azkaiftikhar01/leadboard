@@ -30,7 +30,10 @@ weekly review export.
 
 Matching the house convention in the sibling repos:
 
-- **fe** — Vite + React 19, react-router, plain CSS modules
-- **be** — Express + Mongoose + JWT + zod, `@anthropic-ai/sdk` for capture parsing
-- **speech** — Web Speech API in browser (free, real-time); audio blob stored as fallback
-  so a server-side transcription pass can be added later without losing history
+- **fe** — Vite + React 19, react-router, plain CSS
+- **be** — Express + Mongoose + zod
+- **desktop** — Electron: tray, popover, global shortcut, native notifications
+- **speech** — Whisper running locally in the renderer (WebGPU / WASM). Free, offline,
+  no key. Paid providers optional behind the same adapter
+- **parsing** — rules-based by default, no model and no network. Ollama or Claude are
+  drop-in upgrades over the same interface

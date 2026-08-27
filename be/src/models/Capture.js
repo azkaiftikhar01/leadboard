@@ -23,6 +23,7 @@ const captureSchema = new mongoose.Schema(
     durationSec: Number,
     transcript: { type: String, default: '' },
     sttProvider: String,
+    parser: String,
     parsed: [parsedItemSchema],
     status: {
       type: String,

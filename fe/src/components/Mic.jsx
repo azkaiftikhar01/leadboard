@@ -1,11 +1,17 @@
 import { useState } from 'react'
+import { useEffect } from 'react'
 import { useRecorder } from '../lib/useRecorder.js'
+import { useTranscriber } from '../lib/useTranscriber.js'
 import { api } from '../lib/api.js'
 
 export function Mic({ source = 'popover', project, onCapture, hint }) {
   const { state, level, seconds, start, stop } = useRecorder()
+  const { transcribe, warm, status: sttStatus, progress } = useTranscriber()
   const [status, setStatus] = useState(null)
   const [error, setError] = useState(null)
+
+  // fetch the model on mount so his first capture is not the slow one
+  useEffect(() => { warm() }, [warm])
 
   const toggle = async () => {
     setError(null)
@@ -19,9 +25,16 @@ export function Mic({ source = 'popover', project, onCapture, hint }) {
     }
     const rec = await stop()
     if (!rec) return
-    setStatus('transcribing…')
     try {
-      const capture = await api.capture(rec.blob, { ...rec, source, project })
+      setStatus('transcribing…')
+      const transcript = await transcribe(rec.blob)
+      if (!transcript) {
+        setError('Nothing heard — try again a bit closer to the mic.')
+        setStatus(null)
+        return
+      }
+      setStatus('sorting it out…')
+      const capture = await api.capture(rec.blob, { ...rec, transcript, source, project })
       onCapture?.(capture)
       setStatus(null)
     } catch (err) {
@@ -48,7 +61,12 @@ export function Mic({ source = 'popover', project, onCapture, hint }) {
           {String(Math.floor(seconds / 60)).padStart(2, '0')}:{String(seconds % 60).padStart(2, '0')}
         </div>
       ) : (
-        <div className="mic-hint">{status || hint || 'Talk. It sorts itself out.'}</div>
+          <div className="mic-hint">
+          {status ||
+            (sttStatus === 'loading'
+              ? `Getting the speech model ready… ${progress || 0}%`
+              : hint || 'Talk. It sorts itself out.')}
+        </div>
       )}
     </div>
   )

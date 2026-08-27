@@ -19,36 +19,38 @@ hand-maintained.
 
 ## Running it
 
+Nothing here needs a paid account. The only thing you must supply is your MongoDB
+connection string.
+
 ```bash
-# 1. Mongo (not installed yet on this machine)
-brew tap mongodb/brew && brew install mongodb-community
-brew services start mongodb-community
+# 1. API — put your connection string in be/.env as MONGODB_URI=...
+cd be && npm install && npm run seed && npm run dev
 
-# 2. API
-cd be && cp .env.example .env      # add ANTHROPIC_API_KEY + OPENAI_API_KEY
-npm install && npm run seed && npm run dev
-
-# 3. Renderer
+# 2. Renderer
 cd fe && npm install && npm run dev
 
-# 4. Desktop shell
+# 3. Desktop shell
 cd desktop && npm install && npm run dev
 ```
 
 The tray icon appears in the menu bar. `⌥Space` captures from anywhere,
-`⌘⇧L` opens the main window.
+`⌘⇧L` opens the main window. For a browser-only run, skip step 3 and open
+`http://localhost:5173`.
 
-For a browser-only run, skip step 4 and open `http://localhost:5173`.
+### What costs nothing
 
-### Keys
-
-| Var | Where | Why |
+| Piece | Default | Cost |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | `be/.env` | Capture parsing (`claude-opus-5`) |
-| `OPENAI_API_KEY` | `be/.env` | Whisper transcription, ~$1/month at his volume |
+| Transcription | Whisper running locally in the app (WebGPU on Apple silicon) | free, offline |
+| Capture parsing | rules-based, no model, no network | free, instant |
+| Database | your MongoDB | your existing cluster |
 
-Swap transcription with `STT_PROVIDER=deepgram`, or drop in a local `whisper.cpp`
-adapter later — raw audio is retained, so switching never costs history.
+Optional upgrades, all behind the same adapters and none required:
+
+- `PARSER=ollama` — a free local model, better on messy run-on speech
+- `PARSER=claude` / `STT_PROVIDER=whisper` — best quality, needs a paid key
+
+Raw audio is retained regardless, so switching providers never costs history.
 
 ## Docs
 

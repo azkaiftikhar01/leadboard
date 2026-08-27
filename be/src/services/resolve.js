@@ -38,9 +38,13 @@ export async function buildResolver() {
 }
 
 /**
- * Turns the parser's name-shaped output into confirm-cards. Every card carries
- * what it could not resolve, so the UI can show "which project?" inline rather
- * than silently dropping the item.
+ * Turns the parser's name-shaped output into confirm-cards.
+ *
+ * `unresolved` carries both what could not be matched *and* what was only
+ * inferred - a project carried over from an earlier sentence, a person guessed
+ * from "he". An inferred value is a guess, and a guess gets asked about rather
+ * than filed. That is the difference between a system he trusts and one he
+ * stops opening.
  */
 export function toCards(parsed, resolver) {
   const cards = []
@@ -52,7 +56,9 @@ export function toCards(parsed, resolver) {
     const p = resolver.project(t.projectName)
     const unresolved = []
     if (t.assigneeName && !a.match) unresolved.push('assignee')
+    else if (t.assigneeInferred) unresolved.push('assignee?')
     if (!t.projectName || !p.match) unresolved.push('project')
+    else if (t.projectInferred) unresolved.push('project?')
     push('task', {
       title: t.title,
       assignee: a.match?._id ?? null,
@@ -67,13 +73,19 @@ export function toCards(parsed, resolver) {
 
   for (const s of parsed.statusUpdates ?? []) {
     const a = resolver.person(s.assigneeName)
+    const unresolvedStatus = []
+    if (!s.newState) unresolvedStatus.push('state')
+    if (s.assigneeInferred) unresolvedStatus.push('assignee?')
+    // a status update needs a real task to land on, and matching a spoken hint
+    // to an existing task is his call, not a guess we should make for him
+    unresolvedStatus.push('task')
     push('status', {
       taskHint: s.taskHint,
       assignee: a.match?._id ?? null,
       assigneeSpoken: s.assigneeName,
       newState: s.newState,
       note: s.note,
-    }, s.newState ? [] : ['state'])
+    }, unresolvedStatus)
   }
 
   for (const b of parsed.blockers ?? []) {
@@ -82,12 +94,13 @@ export function toCards(parsed, resolver) {
     const unresolved = []
     if (b.type === 'waiting_on_dev' && b.waitingOnName && !w.match) unresolved.push('waitingOn')
     if (!p.match) unresolved.push('project')
+    else if (b.projectInferred) unresolved.push('project?')
     push('blocker', {
       item: b.item,
       type: b.type,
       taskHint: b.taskHint,
       waitingOn: w.match?._id ?? null,
-      waitingOnLabel: b.waitingOnName,
+      waitingOnLabel: w.match?.name ?? b.waitingOnName,
       project: p.match?._id ?? null,
       projectSpoken: b.projectName,
     }, unresolved)
@@ -96,13 +109,17 @@ export function toCards(parsed, resolver) {
   for (const o of parsed.owed ?? []) {
     const to = resolver.person(o.toName)
     const p = resolver.project(o.projectName)
+    const unresolvedOwed = []
+    if (o.toName && !to.match) unresolvedOwed.push('to')
+    else if (o.toInferred) unresolvedOwed.push('to?')
+    if (p.match && o.projectInferred) unresolvedOwed.push('project?')
     push('owed', {
       item: o.item,
       to: to.match?._id ?? null,
-      toSpoken: o.toName,
+      toSpoken: to.match?.name ?? o.toName,
       project: p.match?._id ?? null,
       dueDate: o.dueDate,
-    }, o.toName && !to.match ? ['to'] : [])
+    }, unresolvedOwed)
   }
 
   for (const n of parsed.notes ?? []) {

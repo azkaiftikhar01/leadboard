@@ -1,22 +1,31 @@
-import { transcribeWhisper } from './whisper.js'
-import { transcribeDeepgram } from './deepgram.js'
-
 /**
- * Web Speech API is deliberately not used. Electron's Chromium ships without
- * Google's speech service keys, so webkitSpeechRecognition does not work in a
- * packaged build - so the renderer records with MediaRecorder and we transcribe
- * here, behind this adapter. Swapping provider (or going local with whisper.cpp)
- * costs one env var and never loses history, because the audio is retained.
+ * Speech-to-text is an adapter because the right answer depends on what he has.
+ *
+ *   client    the renderer already transcribed it with Whisper running locally
+ *             on his own GPU - free, offline, private            (default)
+ *   whisper   OpenAI Whisper API, needs a paid key
+ *   deepgram  lower latency, needs a paid key
+ *
+ * Web Speech API is deliberately absent: Electron's Chromium ships without
+ * Google's speech keys, so webkitSpeechRecognition is dead in a packaged build.
  */
-const providers = {
-  whisper: transcribeWhisper,
-  deepgram: transcribeDeepgram,
-}
+export async function transcribe(filePath, { transcript } = {}) {
+  const provider = process.env.STT_PROVIDER || 'client'
 
-export async function transcribe(filePath) {
-  const name = process.env.STT_PROVIDER || 'whisper'
-  const fn = providers[name]
-  if (!fn) throw new Error(`unknown STT_PROVIDER: ${name}`)
-  const text = await fn(filePath)
-  return { text: (text || '').trim(), provider: name }
+  if (provider === 'client') {
+    if (!transcript?.trim()) throw new Error('no transcript from client (local Whisper still loading?)')
+    return { text: transcript.trim(), provider: 'client-whisper' }
+  }
+
+  if (provider === 'whisper') {
+    const { transcribeWhisper } = await import('./whisper.js')
+    return { text: (await transcribeWhisper(filePath))?.trim() || '', provider }
+  }
+
+  if (provider === 'deepgram') {
+    const { transcribeDeepgram } = await import('./deepgram.js')
+    return { text: (await transcribeDeepgram(filePath))?.trim() || '', provider }
+  }
+
+  throw new Error(`unknown STT_PROVIDER: ${provider}`)
 }

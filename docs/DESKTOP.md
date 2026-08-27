@@ -61,24 +61,27 @@ one-user internal tool:
 
 ## The one real constraint: speech
 
-**Web Speech API is not usable here.** Electron's Chromium ships without Google's speech
-service keys, so `webkitSpeechRecognition` does not work in a packaged Electron app. This
-is a known limitation, not something we can configure around.
+**Web Speech API is not usable here.** Electron's Chromium ships without Google's
+speech service keys, so `webkitSpeechRecognition` does not work in a packaged Electron
+app. This is a known limitation, not something we can configure around.
 
-So capture records audio locally with `MediaRecorder` and transcribes server-side, behind
-a swappable adapter:
+So the app runs Whisper itself, locally, in the renderer — WebGPU where available
+(fast on Apple silicon), WASM otherwise. No key, no account, no audio leaving the
+laptop. The model downloads once on first launch and caches; it is pulled in the
+background at startup so his first capture is never the slow one.
+
+Paid transcription stays available behind the same adapter for anyone who wants
+lower latency, but nothing requires it:
 
 ```
 be/src/services/stt/
   index.js        ← adapter, picks provider from env
-  whisper.js      ← OpenAI Whisper API   (~$0.006/min → ~$1/month at his volume)
-  deepgram.js     ← lower latency alternative
-  local.js        ← whisper.cpp, offline + private, added later
+  (client)        ← Whisper in the renderer   — default, free, offline
+  whisper.js      ← OpenAI Whisper API        — optional, needs a key
+  deepgram.js     ← lower latency             — optional, needs a key
 ```
 
-Latency lands around 1–2s for a standup-length clip, which is fine — he is confirming
-chips, not dictating live. Raw audio is retained either way, so switching providers or
-going local never costs history.
+Raw audio is retained either way, so switching provider never costs history.
 
 ## Desktop-specific interaction changes
 

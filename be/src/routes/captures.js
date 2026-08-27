@@ -4,7 +4,7 @@ import path from 'node:path'
 import Capture from '../models/Capture.js'
 import User from '../models/User.js'
 import { transcribe } from '../services/stt/index.js'
-import { parseTranscript } from '../services/parse.js'
+import { parseTranscript } from '../services/parse/index.js'
 import { buildResolver, toCards } from '../services/resolve.js'
 import { applyCard } from '../lib/apply.js'
 
@@ -32,11 +32,9 @@ r.post('/', upload.single('audio'), async (req, res) => {
   })
 
   try {
-    if (!capture.transcript && capture.audioPath) {
-      const { text, provider } = await transcribe(capture.audioPath)
-      capture.transcript = text
-      capture.sttProvider = provider
-    }
+    const { text, provider } = await transcribe(capture.audioPath, { transcript: capture.transcript })
+    capture.transcript = text
+    capture.sttProvider = provider
     if (!capture.transcript.trim()) {
       capture.status = 'failed'
       capture.error = 'nothing heard'
@@ -55,6 +53,7 @@ r.post('/', upload.single('audio'), async (req, res) => {
     })
 
     capture.parsed = toCards(parsed, resolver)
+    capture.parser = parsed.parser
     capture.status = 'pending'
     await capture.save()
     res.status(201).json(capture)

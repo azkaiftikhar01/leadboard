@@ -30,8 +30,8 @@ notebook, and he will go back.
 
 ### 1. Capture (the spine)
 
-Mic button → browser speech recognition streams a transcript (audio blob kept as backup)
-→ Claude parses the transcript into typed entities:
+Mic button → Whisper runs locally in the app and returns a transcript (audio kept as
+backup) → a parser turns the transcript into typed entities:
 
 ```
 "asad's on the widespace fix, still stuck on sara's figma,
@@ -44,6 +44,25 @@ Mic button → browser speech recognition streams a transcript (audio blob kept 
 
 Each becomes a confirm-card. Accept, edit inline, or discard. Anything the parser can't
 resolve (unknown project, ambiguous name) lands in **Inbox** rather than being guessed.
+
+Parsing is an adapter, and the default costs nothing:
+
+| Parser | Needs | Quality |
+|---|---|---|
+| `heuristic` (default) | nothing at all | Good — the grammar is tiny and the roster is a known list |
+| `ollama` | a free local model | Better on messy, run-on speech |
+| `claude` | a paid API key | Best |
+
+The heuristic parser works better than it sounds because the problem is narrow: the
+people and projects are a closed set, and standup speech uses about a dozen verb
+patterns. It resolves pronouns back to the last clause *subject*, so "asad is on the
+grid fix, he's blocked on sara, I owe him the key" correctly lands the key on Asad
+and not on Sara.
+
+Crucially it marks anything it *inferred* — a project carried over from an earlier
+sentence, a person guessed from "he" — as needing confirmation. A guess gets asked
+about rather than filed. That is the whole difference between a system he trusts and
+one he stops opening.
 
 ### 2. The Morning Standup ritual
 
