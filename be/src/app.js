@@ -12,6 +12,7 @@ import standup from './routes/standup.js'
 import blockers from './routes/blockers.js'
 import today from './routes/today.js'
 import awards from './routes/awards.js'
+import notes from './routes/notes.js'
 import { requireAuth, authRoutes } from './auth.js'
 
 const app = express()
@@ -45,6 +46,7 @@ app.use('/api/standup', standup)
 app.use('/api/blockers', blockers)
 app.use('/api/today', today)
 app.use('/api/awards', awards)
+app.use('/api/notes', notes)
 
 app.use((err, _req, res, _next) => {
   console.error(err)

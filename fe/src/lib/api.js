@@ -53,6 +53,12 @@ export const api = {
   giveAward: (b) => req('/awards', { method: 'POST', body: JSON.stringify(b) }),
   undoAward: (id) => req(`/awards/${id}`, { method: 'DELETE' }),
 
+  // notes
+  notes: (q = '') => req(`/notes${q}`),
+  addNote: (b) => req('/notes', { method: 'POST', body: JSON.stringify(b) }),
+  patchNote: (id, b) => req(`/notes/${id}`, { method: 'PATCH', body: JSON.stringify(b) }),
+  deleteNote: (id) => req(`/notes/${id}`, { method: 'DELETE' }),
+
   // tasks
   tasks: (q = '') => req(`/tasks${q}`),
   addTask: (b) => req('/tasks', { method: 'POST', body: JSON.stringify(b) }),

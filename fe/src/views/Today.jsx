@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { useConfirm } from '../components/Confirm.jsx'
+import { Notes } from '../components/Notes.jsx'
 import { Avatar, Tag, Empty, EmptyArt, Streak, Modal, Field, Spinner, Dial, Spark, Icon, dueLabel } from '../components/ui.jsx'
 
 const TRACKS = [
@@ -70,6 +71,8 @@ export function Today() {
           {!data.standupDone && <a href="#/standup" className="btn primary">Start standup <Icon.arrow size={15} /></a>}
         </div>
       </div>
+
+      <Notes />
 
       <StatRow data={data} total={total} />
 

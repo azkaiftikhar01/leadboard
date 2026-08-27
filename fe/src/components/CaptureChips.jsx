@@ -4,25 +4,24 @@ import { Icon } from './icons.jsx'
 
 const KIND = { task: 'task', blocker: 'blocked', owed: 'on me', status: 'update', note: 'note', deadline: 'due' }
 
-const describe = (card) => {
-  const p = card.payload || {}
-  switch (card.kind) {
-    case 'task':    return p.title
-    case 'blocker': return p.item
-    case 'owed':    return p.item
-    case 'status':  return `${p.taskHint}${p.newState ? ` → ${p.newState.replace('_', ' ')}` : ''}`
-    default:        return p.body || p.title || p.item || '—'
+/**
+ * "can you make a task for asad about the pricing page" -> "pricing page".
+ *
+ * Applied twice, because the politeness word and the verb are separate layers
+ * ("can you" then "make a task for X about") and one pass only ever eats one.
+ */
+const LEADIN = /^(?:can you|could you|would you|please|pls|remind me to|i need to|we need to|let'?s|make|create|add|put)\s+(?:a\s+|an\s+)?(?:task|ticket|note|reminder|item)?\s*(?:for\s+\S+\s*)?(?:to|about|on|that|regarding|re)?\s*/i
+
+const asTitle = (body = '') => {
+  let out = body.trim()
+  for (let i = 0; i < 2; i++) {
+    const next = out.replace(LEADIN, '').trim()
+    if (!next || next === out) break
+    out = next
   }
+  return out.replace(/\s+/g, ' ') || body.trim()
 }
 
-/**
- * Chips are editable, not just acceptable.
- *
- * The parser gets the words right far more often than it gets the project
- * right - so a chip that cannot be applied because one field is missing is a
- * dead end, and he has to type the whole thing again by hand. Anything
- * unresolved becomes a dropdown on the chip itself: pick it, accept it, done.
- */
 export function CaptureChips({ capture, onChange }) {
   const [busy, setBusy] = useState(null)
   const [edits, setEdits] = useState({})
@@ -42,13 +41,34 @@ export function CaptureChips({ capture, onChange }) {
   if (!pending.length) return <div className="dim" style={{ fontSize: 12 }}>Nothing left to confirm.</div>
 
   const patch = (id, field, value) => setEdits((e) => ({ ...e, [id]: { ...e[id], [field]: value } }))
+
+  /** Switching a note to a task: trim the lead-in and pick up any name in it,
+   *  so he is editing a task rather than retyping his own sentence. */
+  const toTask = (card) => {
+    const body = card.payload?.body || ''
+    const named = opts.people.find((u) =>
+      String(u.name).split(/\s+/).filter((w) => w.length >= 3)
+        .some((w) => new RegExp(`\\b${w}\\b`, 'i').test(body))
+    )
+    setEdits((e) => ({
+      ...e,
+      [card._id]: {
+        ...e[card._id],
+        __as: 'task',
+        title: e[card._id]?.title ?? asTitle(body),
+        assignee: e[card._id]?.assignee ?? named?._id ?? null,
+      },
+    }))
+  }
   const merged = (card) => ({ ...card.payload, ...(edits[card._id] || {}) })
+  // a note he *meant* as an instruction should not need retyping as a task
+  const asTask = (card) => merged(card).__as === 'task'
 
   // what this card still needs before it can become a real record
   const missing = (card) => {
     const p = merged(card)
     const need = []
-    if (card.kind !== 'note' && !p.project) need.push('project')
+    if ((card.kind !== 'note' || asTask(card)) && !p.project) need.push('project')
     if (card.kind === 'status' && !p.task) need.push('task')
     if (card.kind === 'status' && !p.newState) need.push('state')
     return need
@@ -60,6 +80,16 @@ export function CaptureChips({ capture, onChange }) {
     try {
       // "asad is on the grid fix" is an update to a task that may not exist
       // yet. Rather than dead-ending, let it become the task.
+      if (accept && card.kind === 'note' && p.__as === 'task') {
+        await api.addTask({
+          title: (p.title || p.body || '').trim(),
+          project: p.project, track: p.track || 'team',
+          assignee: p.assignee || undefined,
+        })
+        const res = await api.discardCard(capture._id, card._id)
+        return onChange?.(res.capture)
+      }
+
       if (accept && card.kind === 'status' && p.task === '__new') {
         await api.addTask({
           title: p.taskHint, project: p.project, track: 'team',
@@ -90,11 +120,31 @@ export function CaptureChips({ capture, onChange }) {
             <span className="k">{KIND[card.kind] || card.kind}</span>
 
             <span className="c">
-              <span className="chip-text">{describe(card)}</span>
+              {asTask(card) ? (
+                <input
+                  className="chip-title" type="text"
+                  value={p.title ?? p.body ?? ''}
+                  onChange={(e) => patch(card._id, 'title', e.target.value)}
+                  placeholder="Task title"
+                />
+              ) : (
+                <span className="chip-text">{describe(card)}</span>
+              )}
 
-              {(need.length > 0 || card.kind === 'task') && (
+              {card.kind === 'note' && (
+                <span className="chip-as">
+                  <button className={p.__as !== 'task' ? 'on' : ''} onClick={() => patch(card._id, '__as', 'note')}>
+                    Keep as note
+                  </button>
+                  <button className={p.__as === 'task' ? 'on' : ''} onClick={() => toTask(card)}>
+                    Make it a task
+                  </button>
+                </span>
+              )}
+
+              {(need.length > 0 || card.kind === 'task' || asTask(card)) && (
                 <span className="chip-fix">
-                  {card.kind !== 'note' && (
+                  {(card.kind !== 'note' || asTask(card)) && (
                     <select
                       value={p.project || ''}
                       onChange={(e) => patch(card._id, 'project', e.target.value || null)}
@@ -104,12 +154,12 @@ export function CaptureChips({ capture, onChange }) {
                     </select>
                   )}
 
-                  {(card.kind === 'task' || card.kind === 'status') && (
+                  {(card.kind === 'task' || card.kind === 'status' || asTask(card)) && (
                     <select
                       value={p.assignee || ''}
                       onChange={(e) => patch(card._id, 'assignee', e.target.value || null)}
                     >
-                      <option value="">{p.assigneeSpoken ? `“${p.assigneeSpoken}” — who?` : 'Unassigned'}</option>
+                      <option value="">{p.assigneeSpoken ? `“${p.assigneeSpoken}” — who?` : 'Who? (optional)'}</option>
                       {opts.people.map((x) => <option key={x._id} value={x._id}>{x.name}</option>)}
                     </select>
                   )}
