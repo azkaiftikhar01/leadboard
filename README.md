@@ -41,7 +41,7 @@ The tray icon appears in the menu bar. `⌥Space` captures from anywhere,
 
 | Piece | Default | Cost |
 |---|---|---|
-| Transcription | Whisper running locally in the app (WebGPU on Apple silicon) | free, offline |
+| Transcription | Chrome speech in the browser; local Whisper in the desktop app | free, no key |
 | Capture parsing | rules-based, no model, no network | free, instant |
 | Database | your MongoDB | your existing cluster |
 

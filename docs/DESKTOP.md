@@ -59,29 +59,35 @@ one-user internal tool:
 - Team is already JS-only; Tauri means a Rust toolchain for zero benefit at this scale
 - Bundle size is irrelevant for an app installed once on one machine
 
-## The one real constraint: speech
+## Speech: two paths, picked automatically
 
-**Web Speech API is not usable here.** Electron's Chromium ships without Google's
-speech service keys, so `webkitSpeechRecognition` does not work in a packaged Electron
-app. This is a known limitation, not something we can configure around.
+**In the browser, Chrome's `SpeechRecognition` is the right answer** - free, no key,
+no account, no download, and it streams words live as he talks so he can see it heard
+him. That is the path whenever it exists.
 
-So the app runs Whisper itself, locally, in the renderer — WebGPU where available
-(fast on Apple silicon), WASM otherwise. No key, no account, no audio leaving the
-laptop. The model downloads once on first launch and caches; it is pulled in the
-background at startup so his first capture is never the slow one.
+**It does not exist in packaged Electron.** Electron's Chromium ships without Google's
+speech service keys, so `webkitSpeechRecognition` is dead there. This is a known
+limitation, not something we can configure around.
 
-Paid transcription stays available behind the same adapter for anyone who wants
-lower latency, but nothing requires it:
+So the app falls back to running Whisper itself, locally in the renderer - WebGPU where
+available, WASM otherwise. Also free, also no key, and it works offline. It costs a
+one-off ~150MB model download, so it is never fetched unless it is actually the path in
+use. The browser never pays for it.
+
+The switch is automatic, and it also catches the case where Google's endpoint is simply
+unreachable mid-capture: the recorded audio is always kept, so the fallback re-transcribes
+rather than losing what he said.
+
+Paid providers stay available behind the same adapter for anyone who wants lower latency,
+but nothing requires one:
 
 ```
 be/src/services/stt/
   index.js        ← adapter, picks provider from env
-  (client)        ← Whisper in the renderer   — default, free, offline
-  whisper.js      ← OpenAI Whisper API        — optional, needs a key
-  deepgram.js     ← lower latency             — optional, needs a key
+  (client)        ← browser speech, or local Whisper — default, free
+  whisper.js      ← OpenAI Whisper API   — optional, needs a key
+  deepgram.js     ← lower latency        — optional, needs a key
 ```
-
-Raw audio is retained either way, so switching provider never costs history.
 
 ## Desktop-specific interaction changes
 

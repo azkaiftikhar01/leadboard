@@ -32,7 +32,7 @@ const captureSchema = new mongoose.Schema(
       index: true,
     },
     error: String,
-    source: { type: String, enum: ['hotkey', 'popover', 'standup', 'typed'], default: 'popover' },
+    source: { type: String, enum: ['hotkey', 'popover', 'standup', 'window', 'typed'], default: 'popover' },
     standupSession: { type: mongoose.Schema.Types.ObjectId, ref: 'StandupSession' },
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
   },

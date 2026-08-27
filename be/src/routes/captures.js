@@ -22,14 +22,19 @@ const todayStr = () => new Date().toISOString().slice(0, 10)
  * Kept as a single round trip so the popover shows one spinner, not three.
  */
 r.post('/', upload.single('audio'), async (req, res) => {
-  const capture = await Capture.create({
-    audioPath: req.file?.path,
-    durationSec: Number(req.body.durationSec) || undefined,
-    source: req.body.source || 'popover',
-    project: req.body.project || undefined,
-    transcript: req.body.transcript || '',
-    status: 'transcribing',
-  })
+  let capture
+  try {
+    capture = await Capture.create({
+      audioPath: req.file?.path,
+      durationSec: Number(req.body.durationSec) || undefined,
+      source: req.body.source || 'popover',
+      project: req.body.project || undefined,
+      transcript: req.body.transcript || '',
+      status: 'transcribing',
+    })
+  } catch (err) {
+    return res.status(400).json({ error: `could not record capture: ${err.message}` })
+  }
 
   try {
     const { text, provider } = await transcribe(capture.audioPath, { transcript: capture.transcript })

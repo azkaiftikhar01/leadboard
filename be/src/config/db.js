@@ -1,4 +1,9 @@
 import mongoose from 'mongoose'
+import mongooseLeanVirtuals from 'mongoose-lean-virtuals'
+
+// without this, .lean({ virtuals: true }) silently drops every virtual - which
+// is how daysOnTask and ageHours were arriving as undefined and rendering NaN
+mongoose.plugin(mongooseLeanVirtuals)
 
 export async function connectDb() {
   const uri = process.env.MONGODB_URI?.trim()

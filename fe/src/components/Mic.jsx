@@ -1,40 +1,41 @@
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRecorder } from '../lib/useRecorder.js'
+import { useSpeech, speechAvailable } from '../lib/useSpeech.js'
 import { useTranscriber } from '../lib/useTranscriber.js'
 import { api } from '../lib/api.js'
 
+/**
+ * Two transcription paths, picked automatically:
+ *
+ *   browser   Chrome's SpeechRecognition - free, no key, no download, streams
+ *             live as he talks. Used whenever it exists.
+ *   local     Whisper running in-app on his own GPU. Used in packaged Electron,
+ *             where Chromium ships without Google's speech keys. Costs a one-off
+ *             model download, so it is never pulled unless it is actually needed.
+ */
 export function Mic({ source = 'popover', project, onCapture, hint }) {
-  const { state, level, seconds, start, stop } = useRecorder()
-  const { transcribe, warm, status: sttStatus, progress } = useTranscriber()
+  const recorder = useRecorder()
+  const speech = useSpeech()
+  const whisper = useTranscriber()
+
   const [status, setStatus] = useState(null)
   const [error, setError] = useState(null)
+  const [fallback, setFallback] = useState(false)
 
-  // fetch the model on mount so his first capture is not the slow one
-  useEffect(() => { warm() }, [warm])
+  const useBrowser = speechAvailable && !fallback
 
-  const toggle = async () => {
-    setError(null)
-    if (state === 'idle') {
-      try {
-        await start()
-      } catch {
-        setError('Microphone blocked — allow access in System Settings › Privacy.')
-      }
+  // only warm the heavy local model when it is the path we are actually on
+  useEffect(() => { if (!useBrowser) whisper.warm() }, [useBrowser, whisper])
+
+  const send = async (transcript, rec) => {
+    if (!transcript) {
+      setError('Nothing heard — try again a bit closer to the mic.')
+      setStatus(null)
       return
     }
-    const rec = await stop()
-    if (!rec) return
+    setStatus('sorting it out…')
     try {
-      setStatus('transcribing…')
-      const transcript = await transcribe(rec.blob)
-      if (!transcript) {
-        setError('Nothing heard — try again a bit closer to the mic.')
-        setStatus(null)
-        return
-      }
-      setStatus('sorting it out…')
-      const capture = await api.capture(rec.blob, { ...rec, transcript, source, project })
+      const capture = await api.capture(rec?.blob, { ...rec, transcript, source, project })
       onCapture?.(capture)
       setStatus(null)
     } catch (err) {
@@ -43,7 +44,48 @@ export function Mic({ source = 'popover', project, onCapture, hint }) {
     }
   }
 
-  const live = state === 'recording'
+  const toggle = async () => {
+    setError(null)
+
+    if (recorder.state === 'idle') {
+      try {
+        // record either way - the audio is the backup that makes a bad
+        // transcript recoverable and a provider swap free
+        await recorder.start()
+        if (useBrowser) speech.start()
+      } catch {
+        setError('Microphone blocked — allow access for this site.')
+      }
+      return
+    }
+
+    const rec = await recorder.stop()
+    if (!rec) return
+
+    if (useBrowser) {
+      const out = await speech.stop()
+      if (out?.error === 'network') {
+        // Google's endpoint is unreachable (offline, or a packaged build) -
+        // switch to local Whisper for good rather than lose the capture
+        setFallback(true)
+        setStatus('switching to local speech…')
+        try { return await send(await whisper.transcribe(rec.blob), rec) } catch (e) { setError(e.message); setStatus(null); return }
+      }
+      if (out?.error) { setError(out.error); return }
+      return send(out.text, rec)
+    }
+
+    setStatus('transcribing…')
+    try {
+      return await send(await whisper.transcribe(rec.blob), rec)
+    } catch (e) {
+      setError(e.message)
+      setStatus(null)
+    }
+  }
+
+  const live = recorder.state === 'recording'
+  const loadingModel = !useBrowser && whisper.status === 'loading'
 
   return (
     <div className="mic-wrap">
@@ -52,19 +94,25 @@ export function Mic({ source = 'popover', project, onCapture, hint }) {
         className={`mic${live ? ' live' : ''}`}
         onClick={toggle}
         disabled={Boolean(status)}
-        style={{ '--ring': `${8 + level * 26}px` }}
+        style={{ '--ring': `${8 + recorder.level * 26}px` }}
       >
         {live ? '■' : '🎙'}
       </button>
+
       {live ? (
-        <div className="mic-timer">
-          {String(Math.floor(seconds / 60)).padStart(2, '0')}:{String(seconds % 60).padStart(2, '0')}
-        </div>
+        <>
+          <div className="mic-timer">
+            {String(Math.floor(recorder.seconds / 60)).padStart(2, '0')}:
+            {String(recorder.seconds % 60).padStart(2, '0')}
+          </div>
+          {/* seeing the words appear is the cheapest possible "yes, it heard you" */}
+          {speech.interim && <div className="mic-hint" style={{ maxWidth: 320 }}>{speech.interim}</div>}
+        </>
       ) : (
-          <div className="mic-hint">
+        <div className="mic-hint">
           {status ||
-            (sttStatus === 'loading'
-              ? `Getting the speech model ready… ${progress || 0}%`
+            (loadingModel
+              ? `Getting the speech model ready… ${whisper.progress || 0}%`
               : hint || 'Talk. It sorts itself out.')}
         </div>
       )}
