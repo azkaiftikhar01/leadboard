@@ -22,9 +22,8 @@ const when = (d) => {
  * he opens it so it never competes with the day's actual state, and it takes
  * dictation because most of these arrive mid-sentence.
  */
-export function Notes() {
+export function Notes({ open, onClose }) {
   const confirm = useConfirm()
-  const [open, setOpen] = useState(() => localStorage.getItem('lb.notes') === '1')
   const [notes, setNotes] = useState([])
   const [editing, setEditing] = useState(null)   // note object or 'new'
   const [draft, setDraft] = useState('')
@@ -34,9 +33,14 @@ export function Notes() {
   const box = useRef(null)
 
   const load = () => api.notes('?limit=60').then(setNotes).catch(() => {})
-  useEffect(() => { load() }, [])
-  useEffect(() => { localStorage.setItem('lb.notes', open ? '1' : '0') }, [open])
+  useEffect(() => { if (open) load() }, [open])
   useEffect(() => { if (editing) box.current?.focus() }, [editing])
+  useEffect(() => {
+    if (!open) return
+    const k = (e) => { if (e.key === 'Escape' && !editing) onClose() }
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [open, editing, onClose])
 
   const start = (note) => {
     setEditing(note || 'new')
@@ -82,25 +86,23 @@ export function Notes() {
     load()
   }
 
+  if (!open) return null
+
   return (
-    <section className={`notes${open ? ' open' : ''}`}>
-      <header className="notes-bar" onClick={() => setOpen((v) => !v)}>
-        <span className="notes-ico"><Icon.inbox size={16} /></span>
-        <b>Notes</b>
-        {notes.length > 0 && <span className="notes-n">{notes.length}</span>}
-        <span className="grow" />
-        {open && (
-          <button
-            className="btn primary sm"
-            onClick={(e) => { e.stopPropagation(); start(null) }}
-          >
+    <>
+      <div className="notes-scrim" onClick={onClose} />
+      <aside className="notes-drawer">
+        <header className="notes-bar">
+          <span className="notes-ico"><Icon.note size={16} /></span>
+          <b>Notes</b>
+          {notes.length > 0 && <span className="notes-n">{notes.length}</span>}
+          <span className="grow" />
+          <button className="btn primary sm" onClick={() => start(null)}>
             <Icon.plus size={13} /> New
           </button>
-        )}
-        <span className={`notes-chev${open ? ' up' : ''}`}><Icon.arrow size={15} /></span>
-      </header>
+          <button className="sheet-x" onClick={onClose} title="Close — Esc"><Icon.x size={16} /></button>
+        </header>
 
-      {open && (
         <div className="notes-body">
           {editing ? (
             <div className="note-editor">
@@ -155,7 +157,7 @@ export function Notes() {
             </div>
           )}
         </div>
-      )}
-    </section>
+      </aside>
+    </>
   )
 }

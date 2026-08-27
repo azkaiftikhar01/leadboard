@@ -16,6 +16,7 @@ import { Icon, Aura } from './components/ui.jsx'
 import { GiveAward } from './components/GiveAward.jsx'
 import { ConfirmProvider } from './components/Confirm.jsx'
 import { QuickTask } from './components/QuickTask.jsx'
+import { Notes } from './components/Notes.jsx'
 import { useTheme } from './lib/useTheme.js'
 import { useCapture } from './lib/useCapture.js'
 import { api } from './lib/api.js'
@@ -53,6 +54,7 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [giving, setGiving] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [notesOpen, setNotesOpen] = useState(false)
   const [authed, setAuthed] = useState(null)
 
   useEffect(() => {
@@ -86,6 +88,7 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPaletteOpen((v) => !v) }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'Space') { e.preventDefault(); cap.toggle() }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') { e.preventDefault(); setAdding(true) }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') { e.preventDefault(); setNotesOpen((v) => !v) }
       if (e.key === 'Escape' && (cap.live || cap.capture || cap.error)) cap.dismiss()
     }
     window.addEventListener('keydown', k)
@@ -110,6 +113,7 @@ export default function App() {
     { label: 'Team & bandwidth', icon: 'team', group: 'Go', run: () => go('#/team') },
     { label: 'Projects', icon: 'projects', group: 'Go', run: () => go('#/projects') },
     { label: 'Scoreboard', icon: 'chart', group: 'Go', run: () => go('#/score') },
+    { label: 'Notes', icon: 'note', group: 'Go', run: () => setNotesOpen(true) },
     { label: 'Log what you saw', icon: 'spark', group: 'Do', run: () => setGiving(true) },
     { label: 'Add a task', icon: 'plus', group: 'Do', run: () => setAdding(true) },
     { label: 'Start a capture', icon: 'mic', group: 'Do', run: () => cap.toggle() },
@@ -173,6 +177,7 @@ export default function App() {
         items={DOCK} hash={hash} counts={counts || {}}
         micLive={cap.live} micLevel={cap.level} onMic={cap.toggle}
         onAdd={() => setAdding(true)}
+        onNotes={() => setNotesOpen((v) => !v)} notesOpen={notesOpen}
         onPalette={() => setPaletteOpen(true)}
         theme={theme} onTheme={toggleTheme}
       />
@@ -180,6 +185,7 @@ export default function App() {
       {paletteOpen && <Palette items={paletteItems} onClose={() => setPaletteOpen(false)} />}
       {giving && <GiveAward onClose={() => setGiving(false)} onDone={pull} />}
       {adding && <QuickTask onClose={() => setAdding(false)} onDone={pull} />}
+      <Notes open={notesOpen} onClose={() => setNotesOpen(false)} />
     </div>
     </ConfirmProvider>
   )

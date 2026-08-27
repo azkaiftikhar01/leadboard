@@ -1252,26 +1252,31 @@ input::placeholder { color: var(--text-3); }
 }
 
 /* ============================================================
-   Notes — shut by default, so it never competes with the board
+   Notes — a drawer, reachable from every screen
    ============================================================ */
-.notes {
-  background: var(--s-1); border: 1px solid var(--line);
-  border-radius: var(--r-lg); box-shadow: var(--sh-1);
-  margin-bottom: 16px; overflow: hidden;
-  transition: box-shadow .2s var(--ease);
+.notes-scrim {
+  position: fixed; inset: 0; z-index: 55;
+  background: rgb(37 19 81 / .22); backdrop-filter: blur(2px);
+  animation: fade .18s var(--ease);
 }
-.notes.open { box-shadow: var(--sh-2); }
+.notes-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 56;
+  width: min(420px, 100vw);
+  display: flex; flex-direction: column;
+  background: var(--s-1); border-left: 1px solid var(--line);
+  box-shadow: -20px 0 60px rgb(37 19 81 / .18);
+  animation: slide-in .26s var(--ease);
+}
+@keyframes slide-in { from { transform: translateX(24px); opacity: .5 } to { transform: none; opacity: 1 } }
 
 .notes-bar {
   display: flex; align-items: center; gap: 10px;
-  padding: 13px 16px; cursor: pointer; user-select: none;
-  transition: background .14s var(--ease);
+  padding: 16px 16px 14px; border-bottom: 1px solid var(--line); flex: none;
 }
-.notes-bar:hover { background: var(--s-2); }
-.notes-bar b { font-size: 14.5px; font-weight: 640; }
+.notes-bar b { font-size: 15px; font-weight: 660; }
 .notes-bar .grow { flex: 1; }
 .notes-ico {
-  width: 28px; height: 28px; border-radius: var(--r-sm);
+  width: 30px; height: 30px; border-radius: var(--r-sm);
   display: grid; place-items: center;
   background: var(--g-sun); color: #fff;
 }
@@ -1279,13 +1284,11 @@ input::placeholder { color: var(--text-3); }
   font-size: 11.5px; font-weight: 700; color: var(--text-3);
   background: var(--s-3); padding: 1px 8px; border-radius: var(--r-pill);
 }
-.notes-chev { color: var(--text-3); transform: rotate(90deg); transition: transform .22s var(--ease); display: grid; }
-.notes-chev.up { transform: rotate(-90deg); }
 
-.notes-body { padding: 4px 16px 16px; border-top: 1px solid var(--line); animation: float-in .22s var(--ease) both; }
+.notes-body { padding: 0 16px 20px; overflow-y: auto; flex: 1; }
 
 .note-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  display: grid; grid-template-columns: 1fr 1fr;
   gap: 10px; padding-top: 14px;
 }
 .note {
@@ -1336,7 +1339,14 @@ input::placeholder { color: var(--text-3); }
 .note-acts .grow { flex: 1; }
 
 @media (max-width: 640px) {
-  .note-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  /* a right-hand drawer has nowhere to go on a phone, so it becomes a sheet */
+  .notes-drawer {
+    top: auto; left: 0; width: 100%; height: 86vh;
+    border-left: none; border-top: 1px solid var(--line);
+    border-radius: 22px 22px 0 0;
+    animation: sheet-rise .26s var(--ease);
+  }
+  .note-grid { gap: 8px; }
   .note { min-height: 92px; padding: 11px 12px; }
-  .notes-body { padding: 4px 13px 14px; }
+  .notes-body { padding: 0 13px calc(16px + env(safe-area-inset-bottom, 0px)); }
 }
