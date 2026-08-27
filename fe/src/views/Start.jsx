@@ -66,7 +66,7 @@ export function Start({ counts, onGo }) {
             <p>{s.hint}</p>
 
             {next?.k === s.k && (
-              <span className="step-go">Start <Icon.arrow size={14} /></span>
+              <span className="step-go"><span>Start <Icon.arrow size={14} /></span></span>
             )}
             {done[s.k] && <span className="step-done">Done</span>}
           </article>
