@@ -1,15 +1,27 @@
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
+// deployed, the API is same-origin behind /api; in dev it is a separate port
+const BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:4000/api' : '/api')
 
 async function req(path, opts = {}) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     ...opts,
   })
+  if (res.status === 401) {
+    const err = new Error('unauthorized')
+    err.unauthorized = true
+    throw err
+  }
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText)
   return res.json()
 }
 
 export const api = {
+  // auth
+  authState: () => req('/auth/state'),
+  login: (password) => req('/auth/login', { method: 'POST', body: JSON.stringify({ password }) }),
+  logout: () => req('/auth/logout', { method: 'POST' }),
+
   today: () => req('/today'),
 
   // team
@@ -55,13 +67,31 @@ export const api = {
   discardCard: (cid, card) => req(`/captures/${cid}/cards/${card}/discard`, { method: 'POST' }),
 
   // audio goes up as multipart, so it skips the JSON helper
-  async capture(blob, { durationSec, source, project } = {}) {
-    const form = new FormData()
-    form.append('audio', blob, 'capture.webm')
-    if (durationSec) form.append('durationSec', String(durationSec))
-    if (source) form.append('source', source)
-    if (project) form.append('project', project)
-    const res = await fetch(`${BASE}/captures`, { method: 'POST', body: form })
+  /**
+   * Two shapes, because there are two paths. Browser speech produces a
+   * transcript and no audio, so it posts plain JSON; the offline Whisper path
+   * produces both and needs multipart. The transcript has to be sent either
+   * way - leaving it out is what made the server reject perfectly good captures
+   * as empty.
+   */
+  async capture(blob, { durationSec, source, project, transcript } = {}) {
+    let res
+    if (blob) {
+      const form = new FormData()
+      form.append('audio', blob, 'capture.webm')
+      if (transcript) form.append('transcript', transcript)
+      if (durationSec) form.append('durationSec', String(durationSec))
+      if (source) form.append('source', source)
+      if (project) form.append('project', project)
+      res = await fetch(`${BASE}/captures`, { method: 'POST', credentials: 'include', body: form })
+    } else {
+      res = await fetch(`${BASE}/captures`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ transcript, durationSec, source, project }),
+      })
+    }
     const json = await res.json()
     if (!res.ok) throw Object.assign(new Error(json.error || 'capture failed'), { capture: json.capture })
     return json

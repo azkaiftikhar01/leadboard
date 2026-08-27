@@ -1,13 +1,10 @@
-import fs from 'node:fs'
-import path from 'node:path'
-
-export async function transcribeWhisper(filePath) {
+export async function transcribeWhisper(buffer) {
   const key = process.env.OPENAI_API_KEY
   if (!key) throw new Error('OPENAI_API_KEY not set (STT_PROVIDER=whisper)')
+  if (!buffer) throw new Error('no audio to transcribe')
 
   const form = new FormData()
-  const buf = await fs.promises.readFile(filePath)
-  form.append('file', new Blob([buf]), path.basename(filePath))
+  form.append('file', new Blob([buffer]), 'capture.webm')
   form.append('model', 'whisper-1')
   form.append('language', 'en')
 
@@ -17,6 +14,5 @@ export async function transcribeWhisper(filePath) {
     body: form,
   })
   if (!res.ok) throw new Error(`whisper ${res.status}: ${await res.text()}`)
-  const json = await res.json()
-  return json.text
+  return (await res.json()).text
 }

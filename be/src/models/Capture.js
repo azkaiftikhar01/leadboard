@@ -19,7 +19,7 @@ const parsedItemSchema = new mongoose.Schema(
 
 const captureSchema = new mongoose.Schema(
   {
-    audioPath: String,
+    audioBytes: Number,
     durationSec: Number,
     transcript: { type: String, default: '' },
     sttProvider: String,

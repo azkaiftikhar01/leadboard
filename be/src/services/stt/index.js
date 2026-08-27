@@ -9,7 +9,7 @@
  * Web Speech API is deliberately absent: Electron's Chromium ships without
  * Google's speech keys, so webkitSpeechRecognition is dead in a packaged build.
  */
-export async function transcribe(filePath, { transcript } = {}) {
+export async function transcribe(buffer, { transcript } = {}) {
   const provider = process.env.STT_PROVIDER || 'client'
 
   if (provider === 'client') {
@@ -19,12 +19,12 @@ export async function transcribe(filePath, { transcript } = {}) {
 
   if (provider === 'whisper') {
     const { transcribeWhisper } = await import('./whisper.js')
-    return { text: (await transcribeWhisper(filePath))?.trim() || '', provider }
+    return { text: (await transcribeWhisper(buffer))?.trim() || '', provider }
   }
 
   if (provider === 'deepgram') {
     const { transcribeDeepgram } = await import('./deepgram.js')
-    return { text: (await transcribeDeepgram(filePath))?.trim() || '', provider }
+    return { text: (await transcribeDeepgram(buffer))?.trim() || '', provider }
   }
 
   throw new Error(`unknown STT_PROVIDER: ${provider}`)

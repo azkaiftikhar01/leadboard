@@ -1,6 +1,5 @@
 import { Router } from 'express'
 import multer from 'multer'
-import path from 'node:path'
 import Capture from '../models/Capture.js'
 import User from '../models/User.js'
 import { transcribe } from '../services/stt/index.js'
@@ -10,8 +9,11 @@ import { applyCard } from '../lib/apply.js'
 
 const r = Router()
 
+// memory, not disk. The audio is only needed for the duration of one request
+// (transcribe, then discard), and a serverless filesystem is read-only outside
+// /tmp and wiped between invocations anyway.
 const upload = multer({
-  dest: path.resolve('uploads'),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024 },
 })
 
@@ -25,7 +27,7 @@ r.post('/', upload.single('audio'), async (req, res) => {
   let capture
   try {
     capture = await Capture.create({
-      audioPath: req.file?.path,
+      audioBytes: req.file?.size,
       durationSec: Number(req.body.durationSec) || undefined,
       source: req.body.source || 'popover',
       project: req.body.project || undefined,
@@ -37,7 +39,7 @@ r.post('/', upload.single('audio'), async (req, res) => {
   }
 
   try {
-    const { text, provider } = await transcribe(capture.audioPath, { transcript: capture.transcript })
+    const { text, provider } = await transcribe(req.file?.buffer, { transcript: capture.transcript })
     capture.transcript = text
     capture.sttProvider = provider
     if (!capture.transcript.trim()) {

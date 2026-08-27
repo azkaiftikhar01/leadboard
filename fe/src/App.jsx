@@ -7,6 +7,7 @@ import { Standup } from './views/Standup.jsx'
 import { Scoreboard } from './views/Scoreboard.jsx'
 import { Inbox } from './views/Inbox.jsx'
 import { Start } from './views/Start.jsx'
+import { Lock } from './views/Lock.jsx'
 import { Mic } from './components/Mic.jsx'
 import { Dock } from './components/Dock.jsx'
 import { Palette } from './components/Palette.jsx'
@@ -51,6 +52,11 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [giving, setGiving] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [authed, setAuthed] = useState(null)
+
+  useEffect(() => {
+    api.authState().then((a) => setAuthed(a.authed)).catch(() => setAuthed(false))
+  }, [])
   const cap = useCapture({ source: 'window' })
 
   const pull = useCallback(async () => {
@@ -83,6 +89,9 @@ export default function App() {
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
   }, [cap])
+
+  if (authed === null) return <div className="lock"><span className="spinner" /></div>
+  if (authed === false) return <Lock onIn={() => { setAuthed(true); pull() }} />
 
   if (view === 'popover') return <div className="popover"><Today /></div>
   if (view === 'capture') return <CaptureOverlay />
