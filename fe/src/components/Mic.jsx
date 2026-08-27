@@ -64,14 +64,26 @@ export function Mic({ source = 'popover', project, onCapture, hint }) {
 
     if (useBrowser) {
       const out = await speech.stop()
-      if (out?.error === 'network') {
-        // Google's endpoint is unreachable (offline, or a packaged build) -
-        // switch to local Whisper for good rather than lose the capture
-        setFallback(true)
-        setStatus('switching to local speech…')
-        try { return await send(await whisper.transcribe(rec.blob), rec) } catch (e) { setError(e.message); setStatus(null); return }
+
+      // permission is the one failure worth surfacing - he has to go fix it
+      if (out?.error === 'permission') {
+        setError('Microphone blocked — allow it for this site and try again.')
+        return
       }
-      if (out?.error) { setError(out.error); return }
+
+      // anything else (recognizer lost the device to the recorder, offline,
+      // nothing heard) is recoverable, because we always kept the audio.
+      // Falling back beats telling him the thing he just said is gone.
+      if (out?.error || !out?.text) {
+        setStatus('finishing locally…')
+        try {
+          return await send(await whisper.transcribe(rec.blob), rec)
+        } catch (e) {
+          setError(`Could not transcribe: ${e.message}`)
+          setStatus(null)
+          return
+        }
+      }
       return send(out.text, rec)
     }
 

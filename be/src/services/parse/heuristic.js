@@ -85,6 +85,9 @@ function cleanTitle(clause, strip) {
 
 const PRONOUN = /\b(?:he|she|they|him|her|them|his|their)\b/i
 
+const VERBS = [BLOCKED, PROGRESS, ASSIGN, OWED, DONE, SUBMITTED]
+const hasVerb = (c) => VERBS.some((re) => re.test(c))
+
 /** Speech strings clauses together with commas, so the splitter has to know the
  *  roster: "sara submitted X, asad should pick up Y" is two clauses, not one. */
 function splitClauses(transcript, names) {
@@ -93,7 +96,26 @@ function splitClauses(transcript, names) {
     `(?:[.;!?\n]+|,\\s*(?=(?:and |but )?(?:also|then|plus|he|she|they|we|i|it${alt ? `|${alt}` : ''})\\b)|\\s+(?:and then|also,?|plus)\\s+)`,
     'i'
   )
-  return transcript.split(re).map((c) => c.trim()).filter((c) => c.length > 2)
+  const rough = transcript.split(re).map((c) => c.trim()).filter((c) => c.length > 2)
+  return rough.flatMap((c) => splitOnAnd(c, alt))
+}
+
+/**
+ * "sara is on the pricing page and asad finished the grid fix" is two clauses.
+ * "asad and bilal are on the grid fix" is one, and splitting it would silently
+ * drop Asad - so only break at "and" once the left side is already a complete
+ * thought, i.e. it has a subject *and* a verb.
+ */
+function splitOnAnd(clause, alt) {
+  if (!alt) return [clause]
+  const re = new RegExp(`\\s+and\\s+(?=(?:${alt}|he|she|they|we|i)\\b)`, 'i')
+  const m = clause.match(re)
+  if (!m) return [clause]
+
+  const left = clause.slice(0, m.index)
+  const right = clause.slice(m.index + m[0].length)
+  if (!hasVerb(left) || !hasVerb(right)) return [clause]
+  return [left.trim(), ...splitOnAnd(right.trim(), alt)]
 }
 
 export function parseHeuristic(transcript, { people = [], projects = [], today }) {

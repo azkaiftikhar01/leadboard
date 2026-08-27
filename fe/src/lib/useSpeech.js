@@ -35,6 +35,8 @@ export function useSpeech() {
       ref.current.final = final
       setInterim(live)
     }
+    // 'audio-capture' shows up when the MediaRecorder already holds the device;
+    // 'no-speech' when it heard nothing. Both are recoverable from the audio.
     rec.onerror = (e) => { ref.current.error = e.error }
     rec.start()
     ref.current = { rec, final: '' }
@@ -48,9 +50,10 @@ export function useSpeech() {
         rec.onend = () => {
           setInterim('')
           const { final, error } = ref.current
-          if (error === 'not-allowed') return resolve({ error: 'Microphone blocked for this site.' })
-          if (error === 'network') return resolve({ error: 'network' })
-          resolve({ text: (final || '').trim() })
+          if (error === 'not-allowed' || error === 'service-not-allowed') {
+            return resolve({ error: 'permission' })
+          }
+          resolve({ error: error || null, text: (final || '').trim() })
         }
         rec.stop()
       }),
