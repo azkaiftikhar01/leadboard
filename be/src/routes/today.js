@@ -27,9 +27,17 @@ r.get('/', async (_req, res) => {
     teamLoad(),
   ])
 
-  const doneToday = await Task.countDocuments({
-    state: 'done',
-    doneAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+  const midnight = new Date(new Date().setHours(0, 0, 0, 0))
+  const doneToday = await Task.countDocuments({ state: 'done', doneAt: { $gte: midnight } })
+
+  // last seven days of completions, oldest first - the sparkline behind
+  // "cleared today", so the number has a shape to sit against
+  const weekStart = new Date(midnight.getTime() - 6 * DAY)
+  const recent = await Task.find({ state: 'done', doneAt: { $gte: weekStart } }).select('doneAt').lean()
+  const doneWeek = Array.from({ length: 7 }, (_, i) => {
+    const from = new Date(weekStart.getTime() + i * DAY)
+    const to = new Date(from.getTime() + DAY)
+    return recent.filter((t) => t.doneAt >= from && t.doneAt < to).length
   })
 
   const byTrack = {
@@ -46,6 +54,7 @@ r.get('/', async (_req, res) => {
     streak,
     inboxCount,
     doneToday,
+    doneWeek,
     tracks: byTrack,
     dueSoon,
     stale,

@@ -12,12 +12,13 @@ function hash(str = '') {
   return h >>> 0
 }
 
-// hand-picked pairs so any two avatars stay distinguishable side by side
+// every pair travels somewhere along the #E57A44 → #251351 axis, so a wall of
+// avatars reads as one family while staying distinguishable side by side
 const PAIRS = [
-  ['#7C5CFF', '#4E7DFF'], ['#FF7A5C', '#FF4E8E'], ['#12C2E9', '#29D3A0'],
-  ['#F5A524', '#FF6B4A'], ['#00C2A8', '#0EA5E9'], ['#B14EFF', '#FF4EC4'],
-  ['#3DDC97', '#12A594'], ['#FF9F4D', '#F45B69'], ['#5B8DEF', '#9B6BFF'],
-  ['#E8536B', '#B14EFF'], ['#1FB6C1', '#5B8DEF'], ['#FFB03A', '#FF7A5C'],
+  ['#F0954F', '#C2536A'], ['#E57A44', '#7A3B7E'], ['#A8446F', '#251351'],
+  ['#F5A65C', '#A8446F'], ['#C2536A', '#4A2A8C'], ['#E5A044', '#D4525F'],
+  ['#7A3B7E', '#251351'], ['#F0954F', '#8C3F6E'], ['#D4525F', '#5C2A7A'],
+  ['#4A2A8C', '#8E4A8C'], ['#E57A44', '#B5493F'], ['#B06A9E', '#3B1E6E'],
 ]
 
 export function gradientFor(name) {

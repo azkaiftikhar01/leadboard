@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { Avatar, Tag, Empty, Streak, Modal, Field, Spinner, Dial, Icon, dueLabel } from '../components/ui.jsx'
+import { Avatar, Tag, Empty, EmptyArt, Streak, Modal, Field, Spinner, Dial, Spark, Icon, dueLabel } from '../components/ui.jsx'
 
 const TRACKS = [
   { key: 'lead', label: 'On me', hint: 'needs your interference' },
@@ -54,6 +54,8 @@ export function Today() {
           {!data.standupDone && <a href="#/standup" className="btn primary">Start standup <Icon.arrow size={15} /></a>}
         </div>
       </div>
+
+      <StatRow data={data} total={total} />
 
       {data.load.length > 0 && <LoadStrip load={data.load} />}
 
@@ -225,6 +227,47 @@ function LoadStrip({ load }) {
             </a>
           ))}
         </div>
+      </div>
+    </div>
+  )
+}
+
+
+/**
+ * The day in four numbers. Cleared-today carries a sparkline because a count on
+ * its own says nothing about whether today is a good day - shape does.
+ */
+function StatRow({ data, total }) {
+  const week = data.doneWeek || []
+  return (
+    <div className="grid c3" style={{ marginBottom: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+      <div className="stat">
+        <div className="eyebrow">Open</div>
+        <div className="v num">{total}</div>
+        <div className="dim" style={{ fontSize: 12.5 }}>across three tracks</div>
+      </div>
+      <div className="stat">
+        <div className="eyebrow">Cleared today</div>
+        <div className="v num">{data.doneToday}</div>
+        {week.length > 1
+          ? <Spark values={week} />
+          : <div className="dim" style={{ fontSize: 12.5 }}>keep going</div>}
+      </div>
+      <div className="stat">
+        <div className="eyebrow">On me</div>
+        <div className="v num" style={{ color: data.tracks.lead.length ? 'var(--c-orange)' : undefined }}>
+          {data.tracks.lead.length}
+        </div>
+        <div className="dim" style={{ fontSize: 12.5 }}>
+          {data.tracks.lead.length ? 'the team is waiting' : 'nothing stuck on you'}
+        </div>
+      </div>
+      <div className="stat">
+        <div className="eyebrow">Due soon</div>
+        <div className="v num" style={{ color: data.dueSoon.length ? 'var(--warn)' : undefined }}>
+          {data.dueSoon.length}
+        </div>
+        <div className="dim" style={{ fontSize: 12.5 }}>next three days</div>
       </div>
     </div>
   )

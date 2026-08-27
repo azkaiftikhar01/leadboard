@@ -110,3 +110,92 @@ export const Field = ({ label, children }) => (
 
 export const pct = (n) => (n === null || n === undefined ? '—' : `${Math.round(n * 100)}%`)
 export const fmt = (n, d = 1) => (n === null || n === undefined ? '—' : Number(n).toFixed(d))
+
+/** Ambient gradient field. Sits behind everything, moves with the theme, and
+ *  keeps a mostly-empty board from reading as a blank page. */
+export const Aura = () => (
+  <div className="aura" aria-hidden="true"><b /><b /><b /></div>
+)
+
+/** Illustrated empty state. A drawn scene reads as "nothing here yet" where a
+ *  20px icon reads as "something failed". */
+export function EmptyArt({ kind = 'check', children, action }) {
+  const art = {
+    check: (
+      <svg width="96" height="72" viewBox="0 0 96 72" fill="none">
+        <defs><linearGradient id="ea1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#06B6D4" /><stop offset="100%" stopColor="#10B981" />
+        </linearGradient></defs>
+        <rect x="18" y="14" width="60" height="44" rx="9" fill="url(#ea1)" opacity=".12" />
+        <rect x="18" y="14" width="60" height="44" rx="9" stroke="url(#ea1)" strokeWidth="1.6" opacity=".5" />
+        <path d="M36 36l8 8 16-16" stroke="url(#ea1)" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+    team: (
+      <svg width="96" height="72" viewBox="0 0 96 72" fill="none">
+        <defs><linearGradient id="ea2" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#8B5CF6" /><stop offset="100%" stopColor="#EC4899" />
+        </linearGradient></defs>
+        <circle cx="36" cy="27" r="10" fill="url(#ea2)" opacity=".18" />
+        <circle cx="36" cy="27" r="10" stroke="url(#ea2)" strokeWidth="1.6" opacity=".55" />
+        <path d="M20 56a16 16 0 0 1 32 0" stroke="url(#ea2)" strokeWidth="1.6" opacity=".55" strokeLinecap="round" />
+        <circle cx="62" cy="31" r="7.5" stroke="url(#ea2)" strokeWidth="1.6" opacity=".3" />
+        <path d="M50 56a13 13 0 0 1 26 0" stroke="url(#ea2)" strokeWidth="1.6" opacity=".3" strokeLinecap="round" />
+      </svg>
+    ),
+    projects: (
+      <svg width="96" height="72" viewBox="0 0 96 72" fill="none">
+        <defs><linearGradient id="ea3" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#7C3AED" /><stop offset="100%" stopColor="#06B6D4" />
+        </linearGradient></defs>
+        {[[20, 16], [52, 16], [20, 42], [52, 42]].map(([x, y], i) => (
+          <rect key={i} x={x} y={y} width="24" height="18" rx="5"
+            fill="url(#ea3)" fillOpacity={i === 0 ? '.2' : '.08'}
+            stroke="url(#ea3)" strokeWidth="1.5" strokeOpacity={i === 0 ? '.6' : '.28'} />
+        ))}
+      </svg>
+    ),
+    inbox: (
+      <svg width="96" height="72" viewBox="0 0 96 72" fill="none">
+        <defs><linearGradient id="ea4" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#FBBF24" /><stop offset="100%" stopColor="#F97316" />
+        </linearGradient></defs>
+        <path d="M22 26h52l6 20v10a5 5 0 0 1-5 5H21a5 5 0 0 1-5-5V46l6-20Z"
+          fill="url(#ea4)" fillOpacity=".13" stroke="url(#ea4)" strokeWidth="1.6" strokeOpacity=".55" strokeLinejoin="round" />
+        <path d="M16 46h18l4 7h20l4-7h18" stroke="url(#ea4)" strokeWidth="1.6" strokeOpacity=".55" strokeLinejoin="round" />
+        <path d="M48 10v11M40 15l8 6 8-6" stroke="url(#ea4)" strokeWidth="1.6" strokeOpacity=".38" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+    review: (
+      <svg width="96" height="72" viewBox="0 0 96 72" fill="none">
+        <defs><linearGradient id="ea5" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#10B981" /><stop offset="100%" stopColor="#06B6D4" />
+        </linearGradient></defs>
+        <circle cx="48" cy="36" r="21" fill="url(#ea5)" opacity=".1" />
+        <circle cx="48" cy="36" r="21" stroke="url(#ea5)" strokeWidth="1.7" opacity=".5" />
+        <path d="M39 36.5l6.5 6.5L59 30" stroke="url(#ea5)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  }[kind]
+
+  return (
+    <div className="empty" style={{ padding: '34px 18px' }}>
+      <div className="empty-art">{art}</div>
+      <div style={{ maxWidth: 340, margin: '0 auto', lineHeight: 1.6 }}>{children}</div>
+      {action && <div style={{ marginTop: 16 }}>{action}</div>}
+    </div>
+  )
+}
+
+/** Compact bar sparkline — gives a stat tile a shape to read, not just a number. */
+export const Spark = ({ values = [], hotLast = true }) => {
+  const max = Math.max(...values, 1)
+  return (
+    <div className="spark">
+      {values.map((v, i) => (
+        <i key={i} className={hotLast && i === values.length - 1 ? 'hot' : ''}
+           style={{ height: `${Math.max(8, (v / max) * 100)}%` }} />
+      ))}
+    </div>
+  )
+}

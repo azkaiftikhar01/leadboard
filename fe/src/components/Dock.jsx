@@ -25,10 +25,19 @@ export function Dock({ items, hash, counts, micLive, micLevel, onMic, onPalette,
   const left = items.filter((i) => i.side === 'l')
   const right = items.filter((i) => i.side === 'r')
 
+  // one utility button on each end and equal nav counts either side, so the
+  // mic lands on the true centre line rather than just near it
   return (
     <div className="dock-wrap">
       <div className="dock">
-        {left.map((i) => <Btn key={i.to} {...i} />)}
+        <div className="dock-group">
+          <button className="dock-btn" onClick={onPalette} aria-label="Search">
+            <Icon.spark size={19} />
+            <span className="tip">Search — ⌘K</span>
+          </button>
+          <span className="dock-sep" />
+          {left.map((i) => <Btn key={i.to} {...i} />)}
+        </div>
 
         <button
           className={`dock-mic${micLive ? ' live' : ''}`}
@@ -36,21 +45,17 @@ export function Dock({ items, hash, counts, micLive, micLevel, onMic, onPalette,
           aria-label={micLive ? 'Stop and file it' : 'Capture'}
           style={{ '--pulse': `${6 + micLevel * 22}px` }}
         >
-          {micLive ? <Icon.stop size={20} /> : <Icon.mic size={23} />}
+          {micLive ? <Icon.stop size={24} /> : <Icon.mic size={30} />}
         </button>
 
-        {right.map((i) => <Btn key={i.to} {...i} />)}
-
-        <span className="dock-sep" />
-
-        <button className="dock-btn" onClick={onPalette} aria-label="Command palette">
-          <Icon.spark size={19} />
-          <span className="tip">Search — ⌘K</span>
-        </button>
-        <button className="dock-btn" onClick={onTheme} aria-label="Toggle theme">
-          {theme === 'light' ? <Icon.moon size={19} /> : <Icon.sun size={19} />}
-          <span className="tip">{theme === 'light' ? 'Dark' : 'Light'}</span>
-        </button>
+        <div className="dock-group">
+          {right.map((i) => <Btn key={i.to} {...i} />)}
+          <span className="dock-sep" />
+          <button className="dock-btn" onClick={onTheme} aria-label="Toggle theme">
+            {theme === 'light' ? <Icon.moon size={19} /> : <Icon.sun size={19} />}
+            <span className="tip">{theme === 'light' ? 'Dark' : 'Light'}</span>
+          </button>
+        </div>
       </div>
     </div>
   )

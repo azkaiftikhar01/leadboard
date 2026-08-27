@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { CaptureChips } from '../components/CaptureChips.jsx'
-import { Empty, Tag, Spinner } from '../components/ui.jsx'
+import { Empty, EmptyArt, Tag, Spinner } from '../components/ui.jsx'
 
 /**
  * Everything the parser could not place with confidence. It lands here rather
@@ -24,7 +24,12 @@ export function Inbox() {
       </div>
 
       {items.length === 0 ? (
-        <div className="panel"><Empty icon="inbox">Everything you said landed somewhere.</Empty></div>
+        <div className="panel">
+          <EmptyArt kind="inbox">
+            Everything you said landed somewhere. Anything the parser can’t place with
+            confidence waits here instead of being guessed at.
+          </EmptyArt>
+        </div>
       ) : (
         <div className="stack">
           {items.map((c) => (

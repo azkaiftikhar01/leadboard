@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { Avatar, Tag, Empty, Modal, Field, LoadMeter, Spinner, Dial, Icon } from '../components/ui.jsx'
+import { Avatar, Tag, Empty, EmptyArt, Modal, Field, LoadMeter, Spinner, Dial, Icon } from '../components/ui.jsx'
 
 const BAND_LABEL = { free: 'Has room', ok: 'Comfortable', full: 'Full', over: 'Overloaded' }
 
@@ -35,7 +35,12 @@ export function Team() {
       </div>
 
       {rows.length === 0 ? (
-        <div className="panel"><Empty icon="team">No devs yet. Add the team first — everything else hangs off it.</Empty></div>
+        <div className="panel">
+          <EmptyArt kind="team" action={<button className="btn primary" onClick={() => setAdding(true)}><Icon.plus size={15} /> Add your first dev</button>}>
+            No devs yet. Add the team first — the load board, the day board and every
+            scorecard hang off it.
+          </EmptyArt>
+        </div>
       ) : (
         <div className="grid c2">
           {rows.map((r) => (

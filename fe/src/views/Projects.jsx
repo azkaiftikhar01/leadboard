@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { Avatar, Tag, Empty, Modal, Field, Spinner, Icon } from '../components/ui.jsx'
+import { Avatar, Tag, Empty, EmptyArt, Modal, Field, Spinner, Icon } from '../components/ui.jsx'
 
 /**
  * Mode is the important control here. It decides how much of a dev's week the
@@ -36,7 +36,12 @@ export function Projects() {
       </div>
 
       {projects.length === 0 ? (
-        <div className="panel"><Empty icon="projects">No projects yet. Add one, then put people on it.</Empty></div>
+        <div className="panel">
+          <EmptyArt kind="projects" action={<button className="btn primary" onClick={() => setCreating(true)}><Icon.plus size={15} /> Create a project</button>}>
+            No projects yet. Create one, set its mode, then put people on it — the mode
+            decides how much of their week it actually costs.
+          </EmptyArt>
+        </div>
       ) : (
         <div className="grid c2">
           {projects.map((p) => {

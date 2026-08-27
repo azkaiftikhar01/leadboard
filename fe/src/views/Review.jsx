@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { Avatar, Tag, Empty, Modal, Spinner, dueLabel } from '../components/ui.jsx'
+import { Avatar, Tag, Empty, EmptyArt, Modal, Spinner, dueLabel } from '../components/ui.jsx'
 
 /**
  * The verdict queue. Approving is one tap; sending something back costs one
@@ -43,7 +43,10 @@ export function Review() {
 
       {queue.length === 0 ? (
         <div className="panel">
-          <Empty icon="review">Nothing handed back to you. The queue fills when a dev marks something submitted.</Empty>
+          <EmptyArt kind="review">
+            Nothing waiting on a verdict. This fills the moment a dev marks something
+            submitted — approve in one tap, send it back in two.
+          </EmptyArt>
         </div>
       ) : (
         <div className="stack">

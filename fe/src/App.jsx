@@ -11,7 +11,7 @@ import { Mic } from './components/Mic.jsx'
 import { Dock } from './components/Dock.jsx'
 import { Palette } from './components/Palette.jsx'
 import { CaptureChips } from './components/CaptureChips.jsx'
-import { Icon } from './components/ui.jsx'
+import { Icon, Aura } from './components/ui.jsx'
 import { useTheme } from './lib/useTheme.js'
 import { useCapture } from './lib/useCapture.js'
 import { api } from './lib/api.js'
@@ -99,6 +99,7 @@ export default function App() {
 
   return (
     <div className="shell">
+      <Aura />
       <main className="main">
         {firstRun ? <Start counts={counts} onGo={go} /> : <View />}
       </main>
