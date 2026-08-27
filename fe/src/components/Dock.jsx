@@ -11,11 +11,11 @@ import { Icon } from './ui.jsx'
  * for the times his hands are busy, not the main way in.
  */
 export function Dock({ items, hash, counts, micLive, micLevel, onMic, onAdd, onPalette, theme, onTheme }) {
-  const Btn = ({ to, label, icon, badge, calm }) => {
+  const Btn = ({ to, label, icon, badge, calm, sec }) => {
     const I = Icon[icon]
     const n = badge ? counts[badge] : 0
     return (
-      <a href={to} className={`dock-btn${hash === to ? ' on' : ''}`} aria-label={label}>
+      <a href={to} className={`dock-btn${hash === to ? ' on' : ''}${sec ? ' sec' : ''}`} aria-label={label}>
         <I size={20} />
         {n > 0 && <span className={`badge${calm ? ' calm' : ''}`}>{n > 99 ? '99+' : n}</span>}
         <span className="tip">{label}</span>
@@ -57,7 +57,7 @@ export function Dock({ items, hash, counts, micLive, micLevel, onMic, onAdd, onP
             {micLive ? <Icon.stop size={17} /> : <Icon.mic size={19} />}
             <span className="tip">{micLive ? 'Stop' : 'Dictate — ⌘⇧Space'}</span>
           </button>
-          <button className="dock-btn" onClick={onTheme} aria-label="Toggle theme">
+          <button className="dock-btn sec" onClick={onTheme} aria-label="Toggle theme">
             {theme === 'light' ? <Icon.moon size={19} /> : <Icon.sun size={19} />}
             <span className="tip">{theme === 'light' ? 'Dark' : 'Light'}</span>
           </button>

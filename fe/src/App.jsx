@@ -33,10 +33,10 @@ const DOCK = [
   { side: 'l', to: '#/', label: 'Today', icon: 'today', badge: 'owed', calm: true },
   { side: 'l', to: '#/standup', label: 'Standup', icon: 'sun' },
   { side: 'l', to: '#/review', label: 'Review', icon: 'review', badge: 'review' },
-  { side: 'r', to: '#/projects', label: 'Projects', icon: 'projects' },
   { side: 'r', to: '#/inbox', label: 'Inbox', icon: 'inbox', badge: 'inbox' },
-  { side: 'r', to: '#/team', label: 'Team', icon: 'team' },
-  { side: 'r', to: '#/score', label: 'Scoreboard', icon: 'chart' },
+  { side: 'r', to: '#/projects', label: 'Projects', icon: 'projects', sec: true },
+  { side: 'r', to: '#/team', label: 'Team', icon: 'team', sec: true },
+  { side: 'r', to: '#/score', label: 'Scoreboard', icon: 'chart', sec: true },
 ]
 
 const ROUTES = {

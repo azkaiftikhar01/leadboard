@@ -240,7 +240,7 @@ function LoadStrip({ load }) {
 function StatRow({ data, total }) {
   const week = data.doneWeek || []
   return (
-    <div className="grid c3" style={{ marginBottom: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+    <div className="stat-row">
       <div className="stat">
         <div className="eyebrow">Open</div>
         <div className="v num">{total}</div>
