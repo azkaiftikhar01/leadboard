@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Today } from './views/Today.jsx'
 import { Team } from './views/Team.jsx'
 import { Projects } from './views/Projects.jsx'
@@ -8,9 +8,12 @@ import { People } from './views/People.jsx'
 import { Inbox } from './views/Inbox.jsx'
 import { Start } from './views/Start.jsx'
 import { Mic } from './components/Mic.jsx'
+import { Dock } from './components/Dock.jsx'
+import { Palette } from './components/Palette.jsx'
 import { CaptureChips } from './components/CaptureChips.jsx'
 import { Icon } from './components/ui.jsx'
 import { useTheme } from './lib/useTheme.js'
+import { useCapture } from './lib/useCapture.js'
 import { api } from './lib/api.js'
 
 const useHash = () => {
@@ -23,16 +26,13 @@ const useHash = () => {
   return hash
 }
 
-const NAV = [
-  { to: '#/', label: 'Today', icon: 'today', badge: 'owed' },
-  { to: '#/standup', label: 'Standup', icon: 'sun' },
-  { to: '#/review', label: 'Review', icon: 'review', badge: 'review' },
-  { to: '#/inbox', label: 'Inbox', icon: 'inbox', badge: 'inbox' },
-]
-const NAV_SETUP = [
-  { to: '#/team', label: 'Team', icon: 'team' },
-  { to: '#/projects', label: 'Projects', icon: 'projects' },
-  { to: '#/people', label: 'Scorecards', icon: 'chart' },
+const DOCK = [
+  { side: 'l', to: '#/', label: 'Today', icon: 'today', badge: 'owed', calm: true },
+  { side: 'l', to: '#/standup', label: 'Standup', icon: 'sun' },
+  { side: 'l', to: '#/review', label: 'Review', icon: 'review', badge: 'review' },
+  { side: 'r', to: '#/inbox', label: 'Inbox', icon: 'inbox', badge: 'inbox' },
+  { side: 'r', to: '#/team', label: 'Team', icon: 'team' },
+  { side: 'r', to: '#/projects', label: 'Projects', icon: 'projects' },
 ]
 
 const ROUTES = {
@@ -43,10 +43,12 @@ const ROUTES = {
 export default function App() {
   const view = new URLSearchParams(location.search).get('view')
   const hash = useHash()
-  const { theme, toggle } = useTheme()
+  const { theme, toggle: toggleTheme } = useTheme()
   const [counts, setCounts] = useState(null)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const cap = useCapture({ source: 'window' })
 
-  const pull = async () => {
+  const pull = useCallback(async () => {
     try {
       const [today, review, people, projects] = await Promise.all([
         api.today(), api.reviewQueue(), api.people(), api.projects(),
@@ -58,76 +60,88 @@ export default function App() {
         assigned: projects.filter((p) => p.members?.length).length,
       })
     } catch { setCounts((c) => c ?? {}) }
-  }
+  }, [])
 
-  useEffect(() => { pull() }, [hash])
+  useEffect(() => { pull() }, [hash, pull])
   useEffect(() => {
     const t = setInterval(pull, 30_000)
     return () => clearInterval(t)
-  }, [])
+  }, [pull])
+
+  // ⌘K anywhere; ⌘⇧Space starts a capture without reaching for the dock
+  useEffect(() => {
+    const k = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPaletteOpen((v) => !v) }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'Space') { e.preventDefault(); cap.toggle() }
+    }
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [cap])
 
   if (view === 'popover') return <div className="popover"><Today /></div>
   if (view === 'capture') return <CaptureOverlay />
 
-  // an empty install lands on setup rather than on three empty columns
   const firstRun = counts && !counts.projects && hash === '#/'
   const View = ROUTES[hash] || Today
 
+  const go = (to) => { location.hash = to }
+  const paletteItems = [
+    { label: 'Today', icon: 'today', group: 'Go', run: () => go('#/') },
+    { label: 'Standup', icon: 'sun', group: 'Go', run: () => go('#/standup') },
+    { label: 'Review queue', icon: 'review', group: 'Go', run: () => go('#/review') },
+    { label: 'Inbox', icon: 'inbox', group: 'Go', run: () => go('#/inbox') },
+    { label: 'Team & bandwidth', icon: 'team', group: 'Go', run: () => go('#/team') },
+    { label: 'Projects', icon: 'projects', group: 'Go', run: () => go('#/projects') },
+    { label: 'Scorecards', icon: 'chart', group: 'Go', run: () => go('#/people') },
+    { label: 'Start a capture', icon: 'mic', group: 'Do', run: () => cap.toggle() },
+    { label: theme === 'light' ? 'Switch to dark' : 'Switch to light', icon: theme === 'light' ? 'moon' : 'sun', group: 'Do', run: toggleTheme },
+  ]
+
   return (
     <div className="shell">
-      <Rail hash={hash} counts={counts || {}} theme={theme} onToggleTheme={toggle} />
       <main className="main">
-        {firstRun ? <Start counts={counts} onGo={(to) => { location.hash = to }} /> : <View />}
+        {firstRun ? <Start counts={counts} onGo={go} /> : <View />}
       </main>
+
+      {(cap.live || cap.capture || cap.error || cap.status) && (
+        <div className="sheet-wrap">
+          <div className="sheet">
+            {cap.error && <div className="err" style={{ marginBottom: 10 }}>{cap.error}</div>}
+            {cap.live && (
+              <div className="row-between" style={{ marginBottom: cap.interim ? 10 : 0 }}>
+                <span className="inline" style={{ gap: 9, color: 'var(--c-warm)' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 99, background: 'var(--c-warm)' }} />
+                  <span style={{ fontWeight: 620 }}>Listening</span>
+                </span>
+                <span className="num dim">
+                  {String(Math.floor(cap.seconds / 60)).padStart(2, '0')}:{String(cap.seconds % 60).padStart(2, '0')}
+                </span>
+              </div>
+            )}
+            {cap.interim && <div className="mic-live-text" style={{ maxWidth: 'none', textAlign: 'left' }}>{cap.interim}</div>}
+            {cap.status && <div className="inline" style={{ gap: 9 }}><span className="spinner" /><span className="muted">{cap.status}…</span></div>}
+            {cap.capture && (
+              <div className="stack" style={{ gap: 7 }}>
+                <CaptureChips capture={cap.capture} onChange={(c) => { cap.setCapture(c); pull() }} />
+                <button className="btn ghost sm" onClick={() => cap.setCapture(null)}>Dismiss</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Dock
+        items={DOCK} hash={hash} counts={counts || {}}
+        micLive={cap.live} micLevel={cap.level} onMic={cap.toggle}
+        onPalette={() => setPaletteOpen(true)}
+        theme={theme} onTheme={toggleTheme}
+      />
+
+      {paletteOpen && <Palette items={paletteItems} onClose={() => setPaletteOpen(false)} />}
     </div>
   )
 }
 
-function Rail({ hash, counts, theme, onToggleTheme }) {
-  const Item = ({ to, label, icon, badge }) => {
-    const I = Icon[icon]
-    const n = badge ? counts[badge] : 0
-    return (
-      <a href={to} className={`nav-item${hash === to ? ' on' : ''}`}>
-        <I size={17} />
-        <span className="label">{label}</span>
-        {n > 0 && <span className={`count ${badge === 'review' ? 'hot' : badge === 'owed' ? 'warm' : ''}`}>{n}</span>}
-      </a>
-    )
-  }
-
-  return (
-    <nav className="rail">
-      <div className="brand">
-        <span className="mark"><Icon.brand size={17} /></span>
-        <span className="name">Leadboard</span>
-      </div>
-
-      {NAV.map((n) => <Item key={n.to} {...n} />)}
-      <div className="rail-group eyebrow">Setup</div>
-      {NAV_SETUP.map((n) => <Item key={n.to} {...n} />)}
-
-      <div className="rail-foot">
-        {counts.streak > 0 && (
-          <div className="card" style={{ padding: 13, boxShadow: 'none' }}>
-            <div className="eyebrow" style={{ marginBottom: 6 }}>Streak</div>
-            <div className="inline" style={{ gap: 7 }}>
-              <span style={{ color: 'var(--c-sun)' }}><Icon.flame size={19} /></span>
-              <span style={{ fontSize: 21, fontWeight: 700, letterSpacing: '-.02em' }}>{counts.streak}</span>
-              <span className="dim" style={{ fontSize: 11.5 }}>days</span>
-            </div>
-          </div>
-        )}
-        <button className="theme-toggle" onClick={onToggleTheme}>
-          {theme === 'light' ? <Icon.moon size={15} /> : <Icon.sun size={15} />}
-          <span>{theme === 'light' ? 'Dark' : 'Light'}</span>
-        </button>
-      </div>
-    </nav>
-  )
-}
-
-/** Global hotkey overlay. Speak, confirm, gone. */
 function CaptureOverlay() {
   const [capture, setCapture] = useState(null)
   useEffect(() => {
@@ -139,12 +153,7 @@ function CaptureOverlay() {
   return (
     <div className="popover">
       <Mic source="hotkey" onCapture={setCapture} hint="Speak. Esc to dismiss." />
-      {capture && (
-        <div className="stack" style={{ gap: 7, marginTop: 12 }}>
-          <CaptureChips capture={capture} onChange={setCapture} />
-          <button className="btn wide" onClick={() => window.leadboard?.closeCapture()}>Done</button>
-        </div>
-      )}
+      {capture && <button className="btn wide" style={{ marginTop: 12 }} onClick={() => window.leadboard?.closeCapture()}>Done</button>}
     </div>
   )
 }

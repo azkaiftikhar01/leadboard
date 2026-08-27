@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { Mic } from '../components/Mic.jsx'
-import { CaptureChips } from '../components/CaptureChips.jsx'
 import { Avatar, Tag, Empty, Streak, Modal, Field, Spinner, Dial, Icon, dueLabel } from '../components/ui.jsx'
 
 const TRACKS = [
@@ -17,7 +15,6 @@ const TRACKS = [
  */
 export function Today() {
   const [data, setData] = useState(null)
-  const [capture, setCapture] = useState(null)
   const [adding, setAdding] = useState(null)
   const [err, setErr] = useState(null)
 
@@ -58,17 +55,7 @@ export function Today() {
         </div>
       </div>
 
-      {/* capture first — it has to be the cheapest thing on the page */}
-      <div className="panel" style={{ marginBottom: 16 }}>
-        <div className="panel-body" style={{ padding: '12px 16px' }}>
-          <Mic source="window" onCapture={setCapture} hint="Say what changed. Tasks, blockers, what you owe — all at once." />
-          {capture && (
-            <div className="stack" style={{ gap: 6, marginTop: 12 }}>
-              <CaptureChips capture={capture} onChange={(c) => { setCapture(c); load() }} />
-            </div>
-          )}
-        </div>
-      </div>
+      {data.load.length > 0 && <LoadStrip load={data.load} />}
 
       <div className="tracks">
         {TRACKS.map((tr) => {
@@ -98,30 +85,6 @@ export function Today() {
           )
         })}
       </div>
-
-      {data.load.length > 0 && (
-        <div className="panel" style={{ marginTop: 16 }}>
-          <div className="panel-head">
-            <h2>Who has room</h2>
-            <a href="#/team" className="btn ghost sm">Team <Icon.arrow size={13} /></a>
-          </div>
-          <div className="panel-body">
-            <div className="inline" style={{ gap: 8, padding: '8px 0' }}>
-              {[...data.load].sort((a, b) => b.headroom - a.headroom).map((l) => (
-                <div key={l.user._id} className="dial-wrap" style={{ marginRight: 14 }}>
-                  <Dial pct={l.loadPercent} />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>{l.user.name}</div>
-                    <div className="dim" style={{ fontSize: 11.5 }}>
-                      {l.headroom > 0 ? `${l.headroom}% free` : 'no room'}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {adding && <AddTask track={adding} onClose={() => setAdding(null)} onSaved={() => { setAdding(null); load() }} />}
     </>
@@ -225,5 +188,44 @@ function AddTask({ track, onClose, onSaved }) {
         <input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
       </Field>
     </Modal>
+  )
+}
+
+/**
+ * The load strip sits above the board, because "who can take this?" is the
+ * question he asks before every single assignment. Sorted by headroom so the
+ * answer is always the leftmost face.
+ */
+function LoadStrip({ load }) {
+  const sorted = [...load].sort((a, b) => b.headroom - a.headroom)
+  const free = sorted.filter((l) => l.headroom > 15)
+
+  return (
+    <div className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel-head">
+        <div className="inline" style={{ gap: 10 }}>
+          <h2>Bandwidth</h2>
+          {free.length > 0 && (
+            <Tag tone="green">{free.length} with room</Tag>
+          )}
+        </div>
+        <a href="#/team" className="btn ghost sm">Team <Icon.arrow size={13} /></a>
+      </div>
+      <div className="panel-body">
+        <div className="inline" style={{ gap: 26, padding: '10px 2px 6px' }}>
+          {sorted.map((l) => (
+            <a key={l.user._id} href="#/team" className="dial-wrap" title={`${l.openTasks} open`}>
+              <Dial pct={l.loadPercent} size={48} />
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{l.user.name}</div>
+                <div className="dim" style={{ fontSize: 12 }}>
+                  {l.headroom > 0 ? `${l.headroom}% free` : 'no room'}
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
