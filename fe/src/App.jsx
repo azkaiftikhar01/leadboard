@@ -4,7 +4,7 @@ import { Team } from './views/Team.jsx'
 import { Projects } from './views/Projects.jsx'
 import { Review } from './views/Review.jsx'
 import { Standup } from './views/Standup.jsx'
-import { People } from './views/People.jsx'
+import { Scoreboard } from './views/Scoreboard.jsx'
 import { Inbox } from './views/Inbox.jsx'
 import { Start } from './views/Start.jsx'
 import { Mic } from './components/Mic.jsx'
@@ -12,6 +12,8 @@ import { Dock } from './components/Dock.jsx'
 import { Palette } from './components/Palette.jsx'
 import { CaptureChips } from './components/CaptureChips.jsx'
 import { Icon, Aura } from './components/ui.jsx'
+import { GiveAward } from './components/GiveAward.jsx'
+import { QuickTask } from './components/QuickTask.jsx'
 import { useTheme } from './lib/useTheme.js'
 import { useCapture } from './lib/useCapture.js'
 import { api } from './lib/api.js'
@@ -30,14 +32,15 @@ const DOCK = [
   { side: 'l', to: '#/', label: 'Today', icon: 'today', badge: 'owed', calm: true },
   { side: 'l', to: '#/standup', label: 'Standup', icon: 'sun' },
   { side: 'l', to: '#/review', label: 'Review', icon: 'review', badge: 'review' },
+  { side: 'r', to: '#/projects', label: 'Projects', icon: 'projects' },
   { side: 'r', to: '#/inbox', label: 'Inbox', icon: 'inbox', badge: 'inbox' },
   { side: 'r', to: '#/team', label: 'Team', icon: 'team' },
-  { side: 'r', to: '#/projects', label: 'Projects', icon: 'projects' },
+  { side: 'r', to: '#/score', label: 'Scoreboard', icon: 'chart' },
 ]
 
 const ROUTES = {
   '#/standup': Standup, '#/review': Review, '#/inbox': Inbox,
-  '#/team': Team, '#/projects': Projects, '#/people': People,
+  '#/team': Team, '#/projects': Projects, '#/score': Scoreboard,
 }
 
 export default function App() {
@@ -46,6 +49,8 @@ export default function App() {
   const { theme, toggle: toggleTheme } = useTheme()
   const [counts, setCounts] = useState(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [giving, setGiving] = useState(false)
+  const [adding, setAdding] = useState(false)
   const cap = useCapture({ source: 'window' })
 
   const pull = useCallback(async () => {
@@ -73,6 +78,7 @@ export default function App() {
     const k = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPaletteOpen((v) => !v) }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'Space') { e.preventDefault(); cap.toggle() }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') { e.preventDefault(); setAdding(true) }
     }
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
@@ -92,7 +98,9 @@ export default function App() {
     { label: 'Inbox', icon: 'inbox', group: 'Go', run: () => go('#/inbox') },
     { label: 'Team & bandwidth', icon: 'team', group: 'Go', run: () => go('#/team') },
     { label: 'Projects', icon: 'projects', group: 'Go', run: () => go('#/projects') },
-    { label: 'Scorecards', icon: 'chart', group: 'Go', run: () => go('#/people') },
+    { label: 'Scoreboard', icon: 'chart', group: 'Go', run: () => go('#/score') },
+    { label: 'Log what you saw', icon: 'spark', group: 'Do', run: () => setGiving(true) },
+    { label: 'Add a task', icon: 'plus', group: 'Do', run: () => setAdding(true) },
     { label: 'Start a capture', icon: 'mic', group: 'Do', run: () => cap.toggle() },
     { label: theme === 'light' ? 'Switch to dark' : 'Switch to light', icon: theme === 'light' ? 'moon' : 'sun', group: 'Do', run: toggleTheme },
   ]
@@ -137,11 +145,14 @@ export default function App() {
       <Dock
         items={DOCK} hash={hash} counts={counts || {}}
         micLive={cap.live} micLevel={cap.level} onMic={cap.toggle}
+        onAdd={() => setAdding(true)}
         onPalette={() => setPaletteOpen(true)}
         theme={theme} onTheme={toggleTheme}
       />
 
       {paletteOpen && <Palette items={paletteItems} onClose={() => setPaletteOpen(false)} />}
+      {giving && <GiveAward onClose={() => setGiving(false)} onDone={pull} />}
+      {adding && <QuickTask onClose={() => setAdding(false)} onDone={pull} />}
     </div>
   )
 }

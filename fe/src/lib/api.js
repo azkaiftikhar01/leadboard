@@ -30,6 +30,13 @@ export const api = {
   setMember: (pid, uid, b) => req(`/projects/${pid}/members/${uid}`, { method: 'PUT', body: JSON.stringify(b) }),
   removeMember: (pid, uid) => req(`/projects/${pid}/members/${uid}`, { method: 'DELETE' }),
   board: (id) => req(`/projects/${id}/board`),
+  // awards & scoreboard
+  awardTypes: () => req('/awards/types'),
+  scoreboard: () => req('/awards/board'),
+  awards: (q = '') => req(`/awards${q}`),
+  giveAward: (b) => req('/awards', { method: 'POST', body: JSON.stringify(b) }),
+  undoAward: (id) => req(`/awards/${id}`, { method: 'DELETE' }),
+
   // tasks
   tasks: (q = '') => req(`/tasks${q}`),
   addTask: (b) => req('/tasks', { method: 'POST', body: JSON.stringify(b) }),

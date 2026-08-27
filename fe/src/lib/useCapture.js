@@ -23,9 +23,10 @@ export function useCapture({ source = 'window', project } = {}) {
   const [status, setStatus] = useState(null)
   const [error, setError] = useState(null)
   const [fallback, setFallback] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
 
   const useBrowser = speechAvailable && !fallback
-  const live = recorder.state === 'recording'
+  const live = recorder.state === 'recording' || speaking
 
   const send = useCallback(async (transcript, rec) => {
     // trim before the guard: a whitespace-only result is not a transcript, and
@@ -52,52 +53,50 @@ export function useCapture({ source = 'window', project } = {}) {
   const toggle = useCallback(async () => {
     setError(null)
 
-    if (recorder.state === 'idle') {
+    if (recorder.state === 'idle' && !speaking) {
       setCapture(null)
       try {
-        await recorder.start()
-        if (useBrowser) speech.start()
+        // ONE mic consumer at a time. Running MediaRecorder alongside Chrome's
+        // recogniser makes the recogniser fight for the device and come back
+        // with nothing - which is exactly the "didn't catch that" on a sentence
+        // that was clearly spoken. The audio backup is not worth losing the
+        // primary path over, so the browser uses speech only.
+        if (useBrowser) { speech.start(); setSpeaking(true) }
+        else await recorder.start()
       } catch {
         setError('Microphone blocked — allow it for this site.')
+        setSpeaking(false)
       }
       return
     }
 
-    // stop the recogniser BEFORE the recorder. Stopping the recorder kills the
-    // mic stream, and Chrome then ends recognition without ever emitting the
-    // final result - which is exactly how a perfectly good sentence came back
-    // as an empty transcript.
-    const out = useBrowser ? await speech.stop() : null
-    const rec = await recorder.stop()
-    if (!rec) return
+    if (speaking) {
+      setSpeaking(false)
+      const out = await speech.stop()
 
-    if (useBrowser) {
       if (out?.error === 'permission') {
         setError('Microphone blocked — allow it for this site and try again.')
         return
       }
+      if (out?.text?.trim()) return send(out.text, null)
 
-      if (out?.text?.trim()) return send(out.text, rec)
-
-      // Only a *service* failure justifies the local model. Falling back on a
-      // plain "heard nothing" would start a 150MB download every time he
-      // fumbled a sentence.
-      const serviceDown = ['network', 'audio-capture', 'service-not-allowed', 'aborted'].includes(out?.error)
-      if (!serviceDown) {
-        setError('Didn’t catch that — try again, a bit closer to the mic.')
+      // the recogniser is unavailable, not merely quiet - retry the same words
+      // through the offline model instead of telling him to say it all again
+      if (['network', 'audio-capture', 'service-not-allowed'].includes(out?.error)) {
+        setFallback(true)
+        setError('Speech service unavailable — switched to offline mode. Try that again.')
         return
       }
-
-      setFallback(true)
-      setStatus(whisper.ready ? 'transcribing' : 'getting the offline model')
-      try { return await send(await whisper.transcribe(rec.blob), rec) }
-      catch (e) { setError(`Could not transcribe: ${e.message}`); setStatus(null); return }
+      setError('Didn’t catch that — say it again, a bit closer to the mic.')
+      return
     }
 
+    const rec = await recorder.stop()
+    if (!rec) return
     setStatus(whisper.ready ? 'transcribing' : 'getting the offline model')
     try { return await send(await whisper.transcribe(rec.blob), rec) }
     catch (e) { setError(e.message); setStatus(null) }
-  }, [recorder, speech, whisper, useBrowser, send])
+  }, [recorder, speech, whisper, useBrowser, speaking, send])
 
   return {
     toggle, live, error, status, capture, setCapture,

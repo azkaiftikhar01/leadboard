@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { Avatar, Tag, Empty, EmptyArt, Modal, Field, Spinner, Icon } from '../components/ui.jsx'
+import { QuickTask } from '../components/QuickTask.jsx'
 
 /**
  * Mode is the important control here. It decides how much of a dev's week the
@@ -13,6 +14,7 @@ export function Projects() {
   const [people, setPeople] = useState([])
   const [creating, setCreating] = useState(false)
   const [open, setOpen] = useState(null)
+  const [addingTo, setAddingTo] = useState(null)
 
   const load = async () => {
     const [p, m, u] = await Promise.all([api.projects(), api.projectModes(), api.people()])
@@ -80,7 +82,14 @@ export function Projects() {
       )}
 
       {creating && <NewProject modes={modes} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); load() }} />}
-      {open && <ProjectDetail project={open} modes={modes} people={people} onClose={() => setOpen(null)} onChanged={load} />}
+      {addingTo && <QuickTask project={addingTo} onClose={() => setAddingTo(null)} onDone={load} />}
+      {open && (
+        <ProjectDetail
+          project={open} modes={modes} people={people}
+          onClose={() => setOpen(null)} onChanged={load}
+          onAddTask={(id) => { setOpen(null); setAddingTo(id) }}
+        />
+      )}
     </>
   )
 }
@@ -139,7 +148,7 @@ function NewProject({ modes, onClose, onSaved }) {
   )
 }
 
-function ProjectDetail({ project, modes, people, onClose, onChanged }) {
+function ProjectDetail({ project, modes, people, onClose, onChanged, onAddTask }) {
   const [busy, setBusy] = useState(null)
   const memberIds = new Set(project.members?.map((m) => String(m.user?._id)))
   const available = people.filter((p) => !memberIds.has(String(p._id)))
@@ -158,7 +167,14 @@ function ProjectDetail({ project, modes, people, onClose, onChanged }) {
       sub={`${project.client || 'internal'} · each person here costs ×${mode?.weight ?? 1} of their week`}
       onClose={onClose}
       wide
-      foot={<button className="btn" onClick={onClose}>Done</button>}
+      foot={
+        <>
+          <button className="btn" onClick={() => onAddTask(project._id)}>
+            <Icon.plus size={14} /> Add a task
+          </button>
+          <button className="btn primary" onClick={onClose}>Done</button>
+        </>
+      }
     >
       <Field label="Mode">
         <div className="seg" style={{ width: '100%' }}>

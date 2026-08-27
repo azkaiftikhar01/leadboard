@@ -11,6 +11,7 @@ import captures from './routes/captures.js'
 import standup from './routes/standup.js'
 import blockers from './routes/blockers.js'
 import today from './routes/today.js'
+import awards from './routes/awards.js'
 
 const app = express()
 
@@ -26,6 +27,7 @@ app.use('/api/captures', captures)
 app.use('/api/standup', standup)
 app.use('/api/blockers', blockers)
 app.use('/api/today', today)
+app.use('/api/awards', awards)
 
 app.use((err, _req, res, _next) => {
   console.error(err)

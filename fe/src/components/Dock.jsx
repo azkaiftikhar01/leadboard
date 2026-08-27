@@ -3,13 +3,14 @@ import { Icon } from './ui.jsx'
 /**
  * The dock replaces the sidebar.
  *
- * Two reasons it is the right shape here. Capture is the product's whole thesis
- * — it has to be cheaper than paper — so the mic sits at the physical centre and
- * is the biggest target on screen. And a lead reads a wide board of three
- * columns; a 236px rail was eating that width to show seven words he already
- * knows by heart.
+ * A lead reads a wide three-column board, and a 236px rail was eating that width
+ * to show seven words he knows by heart.
+ *
+ * The centre is "add", because typing a task is what he actually does forty
+ * times a day. Voice sits beside it as one button among many - it is a shortcut
+ * for the times his hands are busy, not the main way in.
  */
-export function Dock({ items, hash, counts, micLive, micLevel, onMic, onPalette, theme, onTheme }) {
+export function Dock({ items, hash, counts, micLive, micLevel, onMic, onAdd, onPalette, theme, onTheme }) {
   const Btn = ({ to, label, icon, badge, calm }) => {
     const I = Icon[icon]
     const n = badge ? counts[badge] : 0
@@ -39,18 +40,23 @@ export function Dock({ items, hash, counts, micLive, micLevel, onMic, onPalette,
           {left.map((i) => <Btn key={i.to} {...i} />)}
         </div>
 
-        <button
-          className={`dock-mic${micLive ? ' live' : ''}`}
-          onClick={onMic}
-          aria-label={micLive ? 'Stop and file it' : 'Capture'}
-          style={{ '--pulse': `${6 + micLevel * 22}px` }}
-        >
-          {micLive ? <Icon.stop size={24} /> : <Icon.mic size={30} />}
+        <button className="dock-add" onClick={onAdd} aria-label="Add a task">
+          <Icon.plus size={26} />
+          <span className="tip">Add a task</span>
         </button>
 
         <div className="dock-group">
           {right.map((i) => <Btn key={i.to} {...i} />)}
           <span className="dock-sep" />
+          <button
+            className={`dock-btn${micLive ? ' mic-live' : ''}`}
+            onClick={onMic}
+            aria-label={micLive ? 'Stop and file it' : 'Dictate'}
+            style={{ '--pulse': `${4 + micLevel * 14}px` }}
+          >
+            {micLive ? <Icon.stop size={17} /> : <Icon.mic size={19} />}
+            <span className="tip">{micLive ? 'Stop' : 'Dictate — ⌘⇧Space'}</span>
+          </button>
           <button className="dock-btn" onClick={onTheme} aria-label="Toggle theme">
             {theme === 'light' ? <Icon.moon size={19} /> : <Icon.sun size={19} />}
             <span className="tip">{theme === 'light' ? 'Dark' : 'Light'}</span>
