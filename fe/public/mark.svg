@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="lb" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F97316"/>
+      <stop offset="45%" stop-color="#E0487E"/>
+      <stop offset="100%" stop-color="#5B2B9E"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#lb)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- board -->
+    <rect x="13" y="12.5" width="33" height="42" rx="7"/>
+    <!-- clip -->
+    <path d="M23.5 12.5V10a2.6 2.6 0 0 1 2.6-2.6h7.3A2.6 2.6 0 0 1 36 10v2.5"/>
+    <!-- spark -->
+    <path d="M7.5 14.5 5 12M6.5 21H3.4M9.5 8.4 7.8 6.2" stroke-width="3"/>
+    <!-- smile -->
+    <path d="M25.5 30.5a4.6 4.6 0 0 0 8 0" stroke-width="3"/>
+    <!-- checklist -->
+    <path d="M20.5 39.5h9M20.5 46.5h13" stroke-width="3"/>
+    <!-- tick -->
+    <path d="M34.5 41.2 37.6 44.4 43.5 37.5" stroke-width="3.2"/>
+  </g>
+  <g fill="url(#lb)">
+    <circle cx="29.5" cy="10.6" r="2.1"/>
+    <ellipse cx="25.6" cy="24.6" rx="1.9" ry="2.4"/>
+    <ellipse cx="33.6" cy="24.6" rx="1.9" ry="2.4"/>
+    <circle cx="16.6" cy="39.5" r="1.9"/>
+    <circle cx="16.6" cy="46.5" r="1.9"/>
+  </g>
+</svg>

@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { Identicon, gradientFor } from './Identicon.jsx'
-import { Icon } from './icons.jsx'
+import { Icon, Mark } from './icons.jsx'
 
-export { Identicon, gradientFor, Icon }
+export { Identicon, gradientFor, Icon, Mark }
 
 export const Avatar = ({ user, size = 28 }) =>
   <Identicon name={user?.name || '?'} size={size} rounded={size > 32 ? 12 : 9} />

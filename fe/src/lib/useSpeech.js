@@ -6,8 +6,8 @@ import { useCallback, useRef, useState } from 'react'
  *
  * The catch is narrow and worth stating: this is backed by Google's speech
  * service, and Electron's Chromium ships without the keys for it. So it works
- * in the browser and dies in the packaged app - which is exactly why the local
- * Whisper path still exists as a fallback. `isAvailable` picks between them.
+ * in the browser and dies in the packaged app - which is why the local Whisper
+ * path still exists. `speechAvailable` picks between them.
  */
 const SR = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)
 
@@ -19,43 +19,68 @@ export function useSpeech() {
 
   const start = useCallback(() => {
     if (!SR) throw new Error('SpeechRecognition unavailable')
-    const rec = new SR()
-    rec.continuous = true
-    rec.interimResults = true
-    rec.lang = 'en-US'
 
-    let final = ''
-    rec.onresult = (e) => {
-      let live = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const chunk = e.results[i][0].transcript
-        if (e.results[i].isFinal) final += chunk + ' '
-        else live += chunk
+    const state = { final: '', error: null, stopping: false, dead: false }
+    ref.current = state
+
+    const spin = () => {
+      const rec = new SR()
+      rec.continuous = true
+      rec.interimResults = true
+      rec.lang = 'en-US'
+
+      rec.onresult = (e) => {
+        let live = ''
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const chunk = e.results[i][0].transcript
+          if (e.results[i].isFinal) state.final += chunk + ' '
+          else live += chunk
+        }
+        setInterim(live)
       }
-      ref.current.final = final
-      setInterim(live)
+
+      // 'no-speech' just means a quiet stretch; it must not kill the session
+      rec.onerror = (e) => { if (e.error !== 'no-speech') state.error = e.error }
+
+      rec.onend = () => {
+        // Chrome ends recognition on its own after a pause. If he is still
+        // talking, restart it - otherwise a long thought gets truncated at the
+        // first breath, and stop() would wait forever on an end that never comes.
+        if (state.stopping || state.error) {
+          state.dead = true
+          state.onDone?.()
+          return
+        }
+        try { spin() } catch { state.dead = true; state.onDone?.() }
+      }
+
+      rec.start()
+      state.rec = rec
     }
-    // 'audio-capture' shows up when the MediaRecorder already holds the device;
-    // 'no-speech' when it heard nothing. Both are recoverable from the audio.
-    rec.onerror = (e) => { ref.current.error = e.error }
-    rec.start()
-    ref.current = { rec, final: '' }
+
+    spin()
   }, [])
 
   const stop = useCallback(
     () =>
       new Promise((resolve) => {
-        const { rec } = ref.current
-        if (!rec) return resolve('')
-        rec.onend = () => {
+        const state = ref.current
+        const done = () => {
           setInterim('')
-          const { final, error } = ref.current
-          if (error === 'not-allowed' || error === 'service-not-allowed') {
-            return resolve({ error: 'permission' })
+          if (state.error === 'not-allowed' || state.error === 'service-not-allowed') {
+            return resolve({ error: 'permission', text: '' })
           }
-          resolve({ error: error || null, text: (final || '').trim() })
+          resolve({ error: state.error || null, text: (state.final || '').trim() })
         }
-        rec.stop()
+
+        if (!state.rec || state.dead) return done()
+
+        state.stopping = true
+        state.onDone = done
+        // whatever it has heard is already in state.final, so never hang on the
+        // recogniser failing to emit a final 'end'
+        setTimeout(() => { if (!state.dead) { state.dead = true; done() } }, 1200)
+        try { state.rec.stop() } catch { done() }
       }),
     []
   )

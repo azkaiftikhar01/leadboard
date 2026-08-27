@@ -36,5 +36,33 @@ export const Icon = {
   trash:    (p) => <S {...p}><path d="M4 7h16M9.5 7V5h5v2M6.5 7l.8 13h9.4l.8-13" /></S>,
   undo:     (p) => <S {...p}><path d="M4 9h10a5 5 0 0 1 0 10h-4" /><path d="M8 5 4 9l4 4" /></S>,
   spark:    (p) => <S {...p}><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8" /></S>,
-  brand:    (p) => <S {...p}><path d="M12 2.5 21 7.5v9L12 21.5 3 16.5v-9Z" /><path d="M12 12v9.5M21 7.5 12 12 3 7.5" /></S>,
 }
+
+/** The LeadBoard mark. Drawn rather than an <img> so it inherits the gradient
+ *  and stays sharp at favicon sizes. */
+export const Mark = ({ size = 32, id = 'lbm' }) => (
+  <svg width={size} height={size} viewBox="0 0 64 64" fill="none" style={{ flex: 'none' }}>
+    <defs>
+      <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#F97316" />
+        <stop offset="45%" stopColor="#E0487E" />
+        <stop offset="100%" stopColor="#5B2B9E" />
+      </linearGradient>
+    </defs>
+    <g fill="none" stroke={`url(#${id})`} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="13" y="12.5" width="33" height="42" rx="7" />
+      <path d="M23.5 12.5V10a2.6 2.6 0 0 1 2.6-2.6h7.3A2.6 2.6 0 0 1 36 10v2.5" />
+      <path d="M7.5 14.5 5 12M6.5 21H3.4M9.5 8.4 7.8 6.2" strokeWidth="3" />
+      <path d="M25.5 30.5a4.6 4.6 0 0 0 8 0" strokeWidth="3" />
+      <path d="M20.5 39.5h9M20.5 46.5h13" strokeWidth="3" />
+      <path d="M34.5 41.2 37.6 44.4 43.5 37.5" strokeWidth="3.2" />
+    </g>
+    <g fill={`url(#${id})`}>
+      <circle cx="29.5" cy="10.6" r="2.1" />
+      <ellipse cx="25.6" cy="24.6" rx="1.9" ry="2.4" />
+      <ellipse cx="33.6" cy="24.6" rx="1.9" ry="2.4" />
+      <circle cx="16.6" cy="39.5" r="1.9" />
+      <circle cx="16.6" cy="46.5" r="1.9" />
+    </g>
+  </svg>
+)

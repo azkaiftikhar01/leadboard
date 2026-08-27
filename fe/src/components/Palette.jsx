@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Icon } from './ui.jsx'
+import { Icon, Mark } from './ui.jsx'
 
 /**
  * ⌘K. The dock holds the seven things he touches daily; everything else lives
@@ -36,10 +36,13 @@ export function Palette({ items, onClose }) {
   return (
     <div className="scrim" style={{ alignItems: 'flex-start', paddingTop: '14vh' }} onClick={onClose}>
       <div className="palette" onClick={(e) => e.stopPropagation()}>
-        <input
-          autoFocus value={q} placeholder="Go to, or do…"
-          onChange={(e) => setQ(e.target.value)}
-        />
+        <div className="palette-top">
+          <Mark size={22} id="pal-mark" />
+          <input
+            autoFocus value={q} placeholder="Go to, or do…"
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </div>
         <div className="list" ref={listRef}>
           {hits.length === 0 ? (
             <div className="empty" style={{ padding: 22 }}>Nothing matches “{q}”.</div>

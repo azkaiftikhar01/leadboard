@@ -15,11 +15,12 @@
   },
   "build": {
     "appId": "com.calcite.leadboard",
-    "productName": "Leadboard",
+    "productName": "LeadBoard",
     "files": [
       "main.js",
       "preload.js",
-      "../fe/dist/**"
+      "../fe/dist/**",
+      "../fe/public/**"
     ],
     "mac": {
       "category": "public.app-category.productivity",
@@ -27,7 +28,8 @@
       "extendInfo": {
         "LSUIElement": true,
         "NSMicrophoneUsageDescription": "Leadboard records your spoken standup updates so it can turn them into tasks."
-      }
+      },
+      "icon": "../fe/public/mark-512.png"
     }
   },
   "allowScripts": {

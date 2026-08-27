@@ -71,11 +71,16 @@ export function useTranscriber() {
       setStatus('working')
       const audio = await toPcm16k(blob)
       const out = await asr(audio, { chunk_length_s: 30, stride_length_s: 5 })
-      return (out?.text || '').trim()
+      // whisper narrates silence as "[BLANK_AUDIO]" / "(silence)" rather than
+      // returning nothing - strip those or they get filed as a real task
+      return (out?.text || '')
+        .replace(/[[(][^\])]*[\])]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
     } finally {
       setStatus('idle')
     }
   }, [])
 
-  return { transcribe, warm, status, progress }
+  return { transcribe, warm, status, progress, ready: Boolean(pipe) }
 }

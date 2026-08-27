@@ -100,6 +100,9 @@ export default function App() {
   return (
     <div className="shell">
       <Aura />
+      <a href="#/" className="brand-corner" aria-label="LeadBoard — Today">
+        <img src="/logo-wordmark.png" alt="LeadBoard" />
+      </a>
       <main className="main">
         {firstRun ? <Start counts={counts} onGo={go} /> : <View />}
       </main>

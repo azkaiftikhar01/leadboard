@@ -28,14 +28,17 @@ export function useCapture({ source = 'window', project } = {}) {
   const live = recorder.state === 'recording'
 
   const send = useCallback(async (transcript, rec) => {
-    if (!transcript) {
-      setError('Nothing heard — try again a bit closer to the mic.')
+    // trim before the guard: a whitespace-only result is not a transcript, and
+    // sending one gets rejected by the server as an empty capture
+    const text = (transcript || '').trim()
+    if (!text) {
+      setError('Didn’t catch that — try again, a bit closer to the mic.')
       setStatus(null)
       return null
     }
     setStatus('sorting it out')
     try {
-      const c = await api.capture(rec?.blob, { ...rec, transcript, source, project })
+      const c = await api.capture(rec?.blob, { ...rec, transcript: text, source, project })
       setCapture(c)
       setStatus(null)
       return c
@@ -60,26 +63,38 @@ export function useCapture({ source = 'window', project } = {}) {
       return
     }
 
+    // stop the recogniser BEFORE the recorder. Stopping the recorder kills the
+    // mic stream, and Chrome then ends recognition without ever emitting the
+    // final result - which is exactly how a perfectly good sentence came back
+    // as an empty transcript.
+    const out = useBrowser ? await speech.stop() : null
     const rec = await recorder.stop()
     if (!rec) return
 
     if (useBrowser) {
-      const out = await speech.stop()
       if (out?.error === 'permission') {
-        setError('Microphone blocked — allow it and try again.')
+        setError('Microphone blocked — allow it for this site and try again.')
         return
       }
-      // anything else is recoverable: we kept the audio
-      if (out?.error || !out?.text) {
-        setStatus('finishing locally')
-        setFallback(Boolean(out?.error))
-        try { return await send(await whisper.transcribe(rec.blob), rec) }
-        catch (e) { setError(`Could not transcribe: ${e.message}`); setStatus(null); return }
+
+      if (out?.text?.trim()) return send(out.text, rec)
+
+      // Only a *service* failure justifies the local model. Falling back on a
+      // plain "heard nothing" would start a 150MB download every time he
+      // fumbled a sentence.
+      const serviceDown = ['network', 'audio-capture', 'service-not-allowed', 'aborted'].includes(out?.error)
+      if (!serviceDown) {
+        setError('Didn’t catch that — try again, a bit closer to the mic.')
+        return
       }
-      return send(out.text, rec)
+
+      setFallback(true)
+      setStatus(whisper.ready ? 'transcribing' : 'getting the offline model')
+      try { return await send(await whisper.transcribe(rec.blob), rec) }
+      catch (e) { setError(`Could not transcribe: ${e.message}`); setStatus(null); return }
     }
 
-    setStatus('transcribing')
+    setStatus(whisper.ready ? 'transcribing' : 'getting the offline model')
     try { return await send(await whisper.transcribe(rec.blob), rec) }
     catch (e) { setError(e.message); setStatus(null) }
   }, [recorder, speech, whisper, useBrowser, send])

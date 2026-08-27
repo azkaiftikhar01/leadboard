@@ -32,9 +32,18 @@ const baseWebPrefs = {
  * without opening anything, the way people read an unread badge.
  * ------------------------------------------------------------------ */
 function createTray() {
-  tray = new Tray(nativeImage.createEmpty())
-  tray.setTitle(' ◆ ')
-  tray.setToolTip('Leadboard')
+  // a template image lets macOS invert it for light/dark menu bars; the mark is
+  // too detailed at 16px, so the tray uses the title text plus this as a fallback
+  const iconPath = path.join(__dirname, '../fe/public/mark-32.png')
+  let icon = nativeImage.createEmpty()
+  try {
+    const img = nativeImage.createFromPath(iconPath)
+    if (!img.isEmpty()) icon = img.resize({ width: 18, height: 18 })
+  } catch { /* fall back to a text-only tray */ }
+
+  tray = new Tray(icon)
+  tray.setTitle(' LeadBoard ')
+  tray.setToolTip('LeadBoard')
 
   tray.on('click', togglePopover)
   tray.on('right-click', () => tray.popUpContextMenu(contextMenu()))
@@ -152,18 +161,18 @@ async function poll() {
     const data = await res.json()
 
     const bits = []
-    if (data.streak) bits.push(`🔥${data.streak}`)
-    if (data.badge.owed) bits.push(`●${data.badge.owed}`)
-    if (data.badge.atRisk) bits.push(`⚠︎${data.badge.atRisk}`)
-    tray.setTitle(bits.length ? ` ${bits.join(' ')} ` : ' ◆ ')
+    if (data.streak) bits.push(`${data.streak}d`)
+    if (data.badge.owed) bits.push(`${data.badge.owed} on me`)
+    if (data.badge.atRisk) bits.push(`${data.badge.atRisk} due`)
+    tray.setTitle(bits.length ? ` ${bits.join(' ')} ` : '')
     tray.setToolTip(
-      `Leadboard\n${data.badge.owed} waiting on you · ${data.badge.atRisk} due soon · ${data.inboxCount} in inbox`
+      `LeadBoard\n${data.badge.owed} waiting on you · ${data.badge.atRisk} due soon · ${data.inboxCount} in inbox`
     )
 
     nudge(data)
   } catch {
-    tray.setTitle(' ◆ ')
-    tray.setToolTip('Leadboard — API offline')
+    tray.setTitle('')
+    tray.setToolTip('LeadBoard — API offline')
   }
 }
 
