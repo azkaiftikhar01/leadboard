@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { CaptureChips } from '../components/CaptureChips.jsx'
-import { Empty, EmptyArt, Tag, Spinner, Icon } from '../components/ui.jsx'
+import { EmptyArt, Tag, Spinner, Icon } from '../components/ui.jsx'
 import { useConfirm } from '../components/Confirm.jsx'
 
 /**

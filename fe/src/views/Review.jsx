@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { Avatar, Tag, Empty, EmptyArt, Modal, Spinner, Icon, dueLabel } from '../components/ui.jsx'
+import { Avatar, Tag, EmptyArt, Modal, Spinner, Icon, dueLabel } from '../components/ui.jsx'
+import { useConfirm } from '../components/Confirm.jsx'
 
 /**
  * The verdict queue. Approving is one tap; sending something back costs one

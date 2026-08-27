@@ -24,7 +24,6 @@ export function Scoreboard() {
 
   if (!rows) return <Spinner />
 
-  const top = rows[0]
   const hasAny = rows.some((r) => r.praise || r.dings || r.reworkPoints)
 
   return (

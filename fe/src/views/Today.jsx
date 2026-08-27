@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { useConfirm } from '../components/Confirm.jsx'
 import { Notes } from '../components/Notes.jsx'
-import { Avatar, Tag, Empty, EmptyArt, Streak, Modal, Field, Spinner, Dial, Spark, Icon, dueLabel } from '../components/ui.jsx'
+import { Avatar, Tag, Empty, Streak, Modal, Field, Spinner, Dial, Spark, Icon, dueLabel } from '../components/ui.jsx'
 
 const TRACKS = [
   { key: 'lead', label: 'On me', hint: 'needs your interference' },

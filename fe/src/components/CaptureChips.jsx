@@ -22,6 +22,25 @@ const asTitle = (body = '') => {
   return out.replace(/\s+/g, ' ') || body.trim()
 }
 
+const describe = (card) => {
+  const p = card.payload || {}
+  switch (card.kind) {
+    case 'task':    return p.title
+    case 'blocker': return p.item
+    case 'owed':    return p.item
+    case 'status':  return `${p.taskHint}${p.newState ? ` \u2192 ${p.newState.replace('_', ' ')}` : ''}`
+    default:        return p.body || p.title || p.item || '\u2014'
+  }
+}
+
+/**
+ * Chips are editable, not just acceptable.
+ *
+ * The parser gets the words right far more often than it gets the project
+ * right - so a chip that cannot be applied because one field is missing is a
+ * dead end, and he has to type the whole thing again by hand. Anything
+ * unresolved becomes a dropdown on the chip itself: pick it, accept it, done.
+ */
 export function CaptureChips({ capture, onChange }) {
   const [busy, setBusy] = useState(null)
   const [edits, setEdits] = useState({})
@@ -60,7 +79,7 @@ export function CaptureChips({ capture, onChange }) {
       },
     }))
   }
-  const merged = (card) => ({ ...card.payload, ...(edits[card._id] || {}) })
+  const merged = (card) => ({ ...card.payload, ...edits[card._id] })
   // a note he *meant* as an instruction should not need retyping as a task
   const asTask = (card) => merged(card).__as === 'task'
 
