@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { Avatar, Tag, Empty, Modal, Field } from '../components/ui.jsx'
+import { Avatar, Tag, Empty, Modal, Field, Spinner, Icon } from '../components/ui.jsx'
 
 /**
  * Mode is the important control here. It decides how much of a dev's week the
@@ -23,7 +23,7 @@ export function Projects() {
   }
   useEffect(() => { load() }, [])
 
-  if (!projects) return <div className="empty"><span className="spinner" /></div>
+  if (!projects) return <Spinner />
 
   return (
     <>
@@ -32,11 +32,11 @@ export function Projects() {
           <h1>Projects</h1>
           <div className="sub">{projects.length} active · mode decides how much of a week each one costs</div>
         </div>
-        <button className="btn primary" onClick={() => setCreating(true)}>+ New project</button>
+        <button className="btn primary" onClick={() => setCreating(true)}><Icon.plus size={15} /> New project</button>
       </div>
 
       {projects.length === 0 ? (
-        <div className="panel"><Empty ico="📁">No projects yet. Add one, then put people on it.</Empty></div>
+        <div className="panel"><Empty icon="projects">No projects yet. Add one, then put people on it.</Empty></div>
       ) : (
         <div className="grid c2">
           {projects.map((p) => {
@@ -170,7 +170,7 @@ function ProjectDetail({ project, modes, people, onClose, onChanged }) {
       <div>
         <div className="eyebrow" style={{ marginBottom: 9 }}>Who's on it</div>
         {!project.members?.length ? (
-          <Empty>Nobody yet.</Empty>
+          <Empty icon="team">Nobody yet.</Empty>
         ) : (
           <div className="stack" style={{ gap: 10 }}>
             {project.members.map((m) => (
@@ -191,7 +191,7 @@ function ProjectDetail({ project, modes, people, onClose, onChanged }) {
                     disabled={busy === m.user?._id}
                     onChange={(e) => put(m.user._id, { allocation: Number(e.target.value) })}
                   />
-                  <button className="btn ghost sm" onClick={() => drop(m.user._id)}>✕</button>
+                  <button className="btn ghost sm" onClick={() => drop(m.user._id)}><Icon.x size={14} /></button>
                 </div>
               </div>
             ))}
@@ -205,7 +205,7 @@ function ProjectDetail({ project, modes, people, onClose, onChanged }) {
           <div className="inline" style={{ gap: 6 }}>
             {available.map((p) => (
               <button key={p._id} className="btn sm" onClick={() => put(p._id, { allocation: 100 })}>
-                + {p.name}
+                <><Icon.plus size={13} /> {p.name}</>
               </button>
             ))}
           </div>

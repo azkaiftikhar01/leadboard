@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { Mic } from '../components/Mic.jsx'
 import { CaptureChips } from '../components/CaptureChips.jsx'
-import { Avatar, Tag, Empty, Streak, Modal, Field, dueLabel } from '../components/ui.jsx'
+import { Avatar, Tag, Empty, Streak, Modal, Field, Spinner, Dial, Icon, dueLabel } from '../components/ui.jsx'
 
 const TRACKS = [
   { key: 'lead', label: 'On me', hint: 'needs your interference' },
@@ -38,7 +38,7 @@ export function Today() {
   }
 
   if (err) return <div className="err">{err} — is the API running on :4000?</div>
-  if (!data) return <div className="empty"><span className="spinner" /></div>
+  if (!data) return <Spinner />
 
   const total = TRACKS.reduce((n, t) => n + data.tracks[t.key].length, 0)
 
@@ -54,7 +54,7 @@ export function Today() {
         </div>
         <div className="inline">
           <Streak count={data.streak} />
-          {!data.standupDone && <a href="#/standup" className="btn primary">Start standup →</a>}
+          {!data.standupDone && <a href="#/standup" className="btn primary">Start standup <Icon.arrow size={15} /></a>}
         </div>
       </div>
 
@@ -86,12 +86,12 @@ export function Today() {
 
               <div className="track-body">
                 {list.length === 0 ? (
-                  <Empty ico="✓">Clear.</Empty>
+                  <Empty icon="check">Clear.</Empty>
                 ) : (
                   list.map((t) => <TaskRow key={t._id} task={t} track={tr.key} onTick={() => tick(t)} />)
                 )}
                 <button className="btn ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => setAdding(tr.key)}>
-                  + Add
+                  <Icon.plus size={14} /> Add
                 </button>
               </div>
             </section>
@@ -103,14 +103,19 @@ export function Today() {
         <div className="panel" style={{ marginTop: 16 }}>
           <div className="panel-head">
             <h2>Who has room</h2>
-            <a href="#/team" className="btn ghost sm">Team →</a>
+            <a href="#/team" className="btn ghost sm">Team <Icon.arrow size={13} /></a>
           </div>
           <div className="panel-body">
             <div className="inline" style={{ gap: 8, padding: '8px 0' }}>
               {[...data.load].sort((a, b) => b.headroom - a.headroom).map((l) => (
-                <div key={l.user._id} className="inline" style={{ gap: 7 }}>
-                  <Avatar user={l.user} />
-                  <span className={`load-chip load-${l.band}`}>{l.loadPercent}%</span>
+                <div key={l.user._id} className="dial-wrap" style={{ marginRight: 14 }}>
+                  <Dial pct={l.loadPercent} />
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{l.user.name}</div>
+                    <div className="dim" style={{ fontSize: 11.5 }}>
+                      {l.headroom > 0 ? `${l.headroom}% free` : 'no room'}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -127,7 +132,7 @@ function TaskRow({ task, track, onTick }) {
   const due = dueLabel(task.dueDate)
   return (
     <div className="task">
-      <button className="tick" onClick={onTick} title="Mark done">✓</button>
+      <button className="tick" onClick={onTick} title="Mark done"><Icon.check size={13} /></button>
       <div className="body">
         <div className="t">{task.title}</div>
         <div className="m">

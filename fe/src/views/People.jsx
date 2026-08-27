@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { Avatar, Tag, Empty, pct, fmt } from '../components/ui.jsx'
+import { Avatar, Tag, Empty, Spinner, Icon, pct, fmt } from '../components/ui.jsx'
 
 /**
  * Scorecards. Sober on purpose — this has to survive being opened in a 1:1, so
@@ -37,7 +37,7 @@ export function People() {
           return (
             <button key={u._id} className="card hover" style={{ textAlign: 'left' }} onClick={() => setOpen(u._id)}>
               <div className="inline" style={{ gap: 11, marginBottom: 12 }}>
-                <Avatar user={u} lg />
+                <Avatar user={u} size={38} />
                 <div>
                   <div style={{ fontWeight: 620, fontSize: 14.5 }}>{u.name}</div>
                   <div className="dim" style={{ fontSize: 12 }}>
@@ -73,7 +73,7 @@ export function People() {
 function Detail({ id, card, onBack }) {
   const [rework, setRework] = useState([])
   useEffect(() => { api.rework(id).then(setRework) }, [id])
-  if (!card) return <div className="empty"><span className="spinner" /></div>
+  if (!card) return <Spinner />
 
   const isLead = card.blockersOnMe !== undefined
 
@@ -84,7 +84,7 @@ function Detail({ id, card, onBack }) {
           <h1>{card.user?.name || 'Scorecard'}</h1>
           <div className="sub">Last 12 weeks</div>
         </div>
-        <button className="btn ghost" onClick={onBack}>← All</button>
+        <button className="btn ghost" onClick={onBack}><Icon.back size={15} /> All</button>
       </div>
 
       <div className="grid c3" style={{ marginBottom: 18 }}>
@@ -109,7 +109,7 @@ function Detail({ id, card, onBack }) {
         <div className="panel-head"><h2>Where the rework came from</h2></div>
         <div className="panel-body">
           {rework.length === 0 ? (
-            <Empty ico="✓">No rework on record.</Empty>
+            <Empty icon="check">No rework on record.</Empty>
           ) : (
             <div className="stack" style={{ gap: 2, padding: '4px 0' }}>
               {rework.map((r) => (

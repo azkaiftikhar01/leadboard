@@ -6,6 +6,9 @@
     <title>Leadboard</title>
   </head>
   <body>
+    <script>
+      try { document.documentElement.dataset.theme = localStorage.getItem('leadboard.theme') || 'light' } catch (e) {}
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

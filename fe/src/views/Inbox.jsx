@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { CaptureChips } from '../components/CaptureChips.jsx'
-import { Empty, Tag } from '../components/ui.jsx'
+import { Empty, Tag, Spinner } from '../components/ui.jsx'
 
 /**
  * Everything the parser could not place with confidence. It lands here rather
@@ -12,7 +12,7 @@ export function Inbox() {
   const load = () => api.inbox().then(setItems)
   useEffect(() => { load() }, [])
 
-  if (!items) return <div className="empty"><span className="spinner" /></div>
+  if (!items) return <Spinner />
 
   return (
     <>
@@ -24,7 +24,7 @@ export function Inbox() {
       </div>
 
       {items.length === 0 ? (
-        <div className="panel"><Empty ico="✓">Everything you said landed somewhere.</Empty></div>
+        <div className="panel"><Empty icon="inbox">Everything you said landed somewhere.</Empty></div>
       ) : (
         <div className="stack">
           {items.map((c) => (

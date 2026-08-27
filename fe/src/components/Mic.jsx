@@ -3,6 +3,7 @@ import { useRecorder } from '../lib/useRecorder.js'
 import { useSpeech, speechAvailable } from '../lib/useSpeech.js'
 import { useTranscriber } from '../lib/useTranscriber.js'
 import { api } from '../lib/api.js'
+import { Icon } from './icons.jsx'
 
 /**
  * Two transcription paths, picked automatically:
@@ -106,9 +107,9 @@ export function Mic({ source = 'popover', project, onCapture, hint }) {
         className={`mic${live ? ' live' : ''}`}
         onClick={toggle}
         disabled={Boolean(status)}
-        style={{ '--ring': `${8 + recorder.level * 26}px` }}
+        style={{ '--pulse': `${8 + recorder.level * 26}px` }}
       >
-        {live ? '■' : '🎙'}
+        {live ? <Icon.stop size={20} /> : <Icon.mic size={22} />}
       </button>
 
       {live ? (
@@ -118,7 +119,7 @@ export function Mic({ source = 'popover', project, onCapture, hint }) {
             {String(recorder.seconds % 60).padStart(2, '0')}
           </div>
           {/* seeing the words appear is the cheapest possible "yes, it heard you" */}
-          {speech.interim && <div className="mic-hint" style={{ maxWidth: 320 }}>{speech.interim}</div>}
+          {speech.interim && <div className="mic-live-text">{speech.interim}</div>}
         </>
       ) : (
         <div className="mic-hint">

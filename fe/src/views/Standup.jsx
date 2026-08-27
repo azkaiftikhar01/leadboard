@@ -2,12 +2,12 @@ import { useEffect, useState, useCallback } from 'react'
 import { api } from '../lib/api.js'
 import { Mic } from '../components/Mic.jsx'
 import { CaptureChips } from '../components/CaptureChips.jsx'
-import { Avatar, Tag, Empty, dueLabel } from '../components/ui.jsx'
+import { Avatar, Tag, Empty, Spinner, Icon, dueLabel } from '../components/ui.jsx'
 
 /**
  * The ritual. A pre-filled card stack, never a blank page — a blank page is what
  * the notebook already gave him. Keyboard-driven because he is at a laptop:
- * → next, ← back, Esc out.
+ * Right arrow advances, left goes back, Esc leaves.
  */
 export function Standup() {
   const [data, setData] = useState(null)
@@ -45,13 +45,13 @@ export function Standup() {
     return () => window.removeEventListener('keydown', onKey)
   }, [next, digest])
 
-  if (!data) return <div className="empty">…</div>
-  if (!cards.length) return <Empty icon="🌤">No active projects yet. Add one on the Board.</Empty>
+  if (!data) return <Spinner />
+  if (!cards.length) return <Empty icon="projects">No active projects yet. Create one first.</Empty>
 
   if (digest) return <Digest digest={digest} copied={copied} setCopied={setCopied} />
 
   const card = cards[Math.min(i, cards.length - 1)]
-  if (atEnd) return <div className="empty">wrapping up…</div>
+  if (atEnd) return <Spinner />
 
   return (
     <div>
@@ -112,9 +112,9 @@ export function Standup() {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-        <button className="btn ghost" disabled={!i} onClick={() => setI(i - 1)}>← Back</button>
+        <button className="btn ghost" disabled={!i} onClick={() => setI(i - 1)}><Icon.back size={15} /> Back</button>
         <button className="btn primary" style={{ flex: 1 }} onClick={next}>
-          {i === cards.length - 1 ? 'Finish & build digest' : 'Next project →'}
+          {i === cards.length - 1 ? 'Finish & build digest' : <>Next project <Icon.arrow size={15} /></>}
         </button>
       </div>
     </div>
@@ -151,15 +151,15 @@ function Digest({ digest, copied, setCopied }) {
   return (
     <div>
       <div className="page-head">
-        <h1>🎉 Standup done</h1>
-        <button className="btn primary" onClick={copy}>{copied ? 'Copied ✓' : 'Copy for Slack'}</button>
+        <h1>Standup done</h1>
+        <button className="btn primary" onClick={copy}>{copied ? <><Icon.check size={14} /> Copied</> : 'Copy for Slack'}</button>
       </div>
 
       <Lane title="Ask from" rows={digest.askFrom} render={(a) => `${a.who} — ${a.item}`} tone="blue" />
       <Lane title="I owe" rows={digest.iOwe} render={(a) => `${a.item}${a.who ? ` (${a.who})` : ''}`} tone="red" />
       <Lane title="At risk" rows={digest.atRisk} render={(a) => `${a.what} — ${a.why}`} tone="amber" />
 
-      <a href="#/" className="btn wide" style={{ marginTop: 14 }}>Back to Today</a>
+      <a href="#/" className="btn wide" style={{ marginTop: 16 }}>Back to Today</a>
     </div>
   )
 }

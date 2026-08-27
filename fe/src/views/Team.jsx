@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { Avatar, Tag, Empty, Modal, Field, LoadMeter } from '../components/ui.jsx'
+import { Avatar, Tag, Empty, Modal, Field, LoadMeter, Spinner, Dial, Icon } from '../components/ui.jsx'
 
 const BAND_LABEL = { free: 'Has room', ok: 'Comfortable', full: 'Full', over: 'Overloaded' }
 
@@ -17,7 +17,7 @@ export function Team() {
   const load = () => api.teamLoad().then(setRows)
   useEffect(() => { load() }, [])
 
-  if (!rows) return <div className="empty"><span className="spinner" /></div>
+  if (!rows) return <Spinner />
 
   const free = rows.filter((r) => r.headroom > 15)
 
@@ -31,24 +31,24 @@ export function Team() {
             {free.length > 0 && <> · <span style={{ color: 'var(--good)' }}>{free.length} with room right now</span></>}
           </div>
         </div>
-        <button className="btn primary" onClick={() => setAdding(true)}>+ Add dev</button>
+        <button className="btn primary" onClick={() => setAdding(true)}><Icon.plus size={15} /> Add dev</button>
       </div>
 
       {rows.length === 0 ? (
-        <div className="panel"><Empty ico="👥">No devs yet. Add the team first — everything else hangs off it.</Empty></div>
+        <div className="panel"><Empty icon="team">No devs yet. Add the team first — everything else hangs off it.</Empty></div>
       ) : (
         <div className="grid c2">
           {rows.map((r) => (
             <div key={r.user._id} className="card hover" style={{ cursor: 'pointer' }} onClick={() => setOpen(r)}>
-              <div className="row-between" style={{ marginBottom: 13 }}>
-                <div className="inline" style={{ gap: 11 }}>
-                  <Avatar user={r.user} lg />
+              <div className="row-between" style={{ marginBottom: 14 }}>
+                <div className="inline" style={{ gap: 12 }}>
+                  <Avatar user={r.user} size={38} />
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 14.5 }}>{r.user.name}</div>
+                    <div style={{ fontWeight: 640, fontSize: 15 }}>{r.user.name}</div>
                     <div className="dim" style={{ fontSize: 12 }}>{r.user.title || 'Developer'}</div>
                   </div>
                 </div>
-                <span className={`load-chip load-${r.band.key}`}>{r.loadPercent}%</span>
+                <Dial pct={r.loadPercent} size={50} />
               </div>
 
               <LoadMeter assignments={r.assignments} capacity={r.capacity} />
@@ -159,7 +159,7 @@ function DevDetail({ row, onClose, onChanged }) {
       <div>
         <div className="eyebrow" style={{ marginBottom: 8 }}>What their week is made of</div>
         {row.assignments.length === 0 ? (
-          <Empty>Not on any project yet.</Empty>
+          <Empty icon="projects">Not on any project yet.</Empty>
         ) : (
           <div className="stack" style={{ gap: 8 }}>
             {row.assignments.map((a) => (

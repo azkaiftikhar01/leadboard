@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api } from '../lib/api.js'
+import { Icon } from './icons.jsx'
 
 const KIND = { task: 'task', blocker: 'blocked', owed: 'on me', status: 'update', note: 'note', deadline: 'due' }
 
@@ -50,8 +51,8 @@ export function CaptureChips({ capture, onChange }) {
             </span>
             <span className="acts">
               <button className="chip-btn yes" disabled={busy === card._id || blocked}
-                title={blocked ? 'Resolve it in Inbox first' : 'Accept'} onClick={() => act(card, true)}>✓</button>
-              <button className="chip-btn no" disabled={busy === card._id} title="Discard" onClick={() => act(card, false)}>✕</button>
+                title={blocked ? 'Resolve it in Inbox first' : 'Accept'} onClick={() => act(card, true)}><Icon.check size={14} /></button>
+              <button className="chip-btn no" disabled={busy === card._id} title="Discard" onClick={() => act(card, false)}><Icon.x size={14} /></button>
             </span>
           </div>
         )

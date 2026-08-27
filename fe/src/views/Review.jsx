@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { Avatar, Tag, Empty, Modal, dueLabel } from '../components/ui.jsx'
+import { Avatar, Tag, Empty, Modal, Spinner, dueLabel } from '../components/ui.jsx'
 
 /**
  * The verdict queue. Approving is one tap; sending something back costs one
@@ -28,7 +28,7 @@ export function Review() {
     } finally { setBusy(null) }
   }
 
-  if (!queue) return <div className="empty"><span className="spinner" /></div>
+  if (!queue) return <Spinner />
 
   return (
     <>
@@ -43,7 +43,7 @@ export function Review() {
 
       {queue.length === 0 ? (
         <div className="panel">
-          <Empty ico="✓">Nothing handed back to you. The queue fills when a dev marks something submitted.</Empty>
+          <Empty icon="review">Nothing handed back to you. The queue fills when a dev marks something submitted.</Empty>
         </div>
       ) : (
         <div className="stack">
@@ -53,7 +53,7 @@ export function Review() {
               <div className="card" key={t._id}>
                 <div className="row-between">
                   <div className="inline" style={{ gap: 11, minWidth: 0 }}>
-                    <Avatar user={t.assignee} lg />
+                    <Avatar user={t.assignee} size={38} />
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14.5 }}>{t.title}</div>
                       <div className="dim inline" style={{ fontSize: 12, marginTop: 3, gap: 7 }}>
