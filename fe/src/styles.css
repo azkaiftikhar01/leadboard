@@ -1350,3 +1350,33 @@ input::placeholder { color: var(--text-3); }
   .note { min-height: 92px; padding: 11px 12px; }
   .notes-body { padding: 0 13px calc(16px + env(safe-area-inset-bottom, 0px)); }
 }
+
+.ok-banner {
+  display: flex; align-items: center; gap: 9px;
+  background: var(--good-bg); color: var(--good);
+  padding: 10px 13px; border-radius: var(--r-sm); font-size: 13px; font-weight: 550;
+}
+
+/* ---------- project managers ---------- */
+.pm-toggle {
+  width: 30px; height: 30px; border-radius: var(--r-pill); flex: none;
+  display: grid; place-items: center;
+  color: var(--text-3); border: 1px solid var(--line);
+  transition: all .14s var(--ease);
+}
+.pm-toggle:hover { border-color: var(--c-sun); color: var(--c-sun); }
+.pm-toggle.on { background: var(--g-sun); border-color: transparent; color: #fff; }
+
+.pm-line {
+  display: flex; align-items: center; gap: 7px; margin-top: 11px;
+  padding-top: 11px; border-top: 1px solid var(--line);
+  font-size: 12px; font-weight: 600; color: var(--c-sun);
+}
+
+.add-person { display: inline-flex; }
+.add-person .btn:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.add-person .pm-add {
+  border-top-left-radius: 0; border-bottom-left-radius: 0;
+  border-left: none; padding-left: 9px; padding-right: 11px; color: var(--text-3);
+}
+.add-person .pm-add:hover { color: var(--c-sun); }

@@ -17,6 +17,7 @@ import { GiveAward } from './components/GiveAward.jsx'
 import { ConfirmProvider } from './components/Confirm.jsx'
 import { QuickTask } from './components/QuickTask.jsx'
 import { Notes } from './components/Notes.jsx'
+import { Settings } from './components/Settings.jsx'
 import { useTheme } from './lib/useTheme.js'
 import { useCapture } from './lib/useCapture.js'
 import { api } from './lib/api.js'
@@ -55,6 +56,7 @@ export default function App() {
   const [giving, setGiving] = useState(false)
   const [adding, setAdding] = useState(false)
   const [notesOpen, setNotesOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [authed, setAuthed] = useState(null)
 
   useEffect(() => {
@@ -115,6 +117,8 @@ export default function App() {
     { label: 'Scoreboard', icon: 'chart', group: 'Go', run: () => go('#/score') },
     { label: 'Notes', icon: 'note', group: 'Go', run: () => setNotesOpen(true) },
     { label: 'Log what you saw', icon: 'spark', group: 'Do', run: () => setGiving(true) },
+    { label: 'Change the passphrase', icon: 'gear', group: 'Do', run: () => setSettingsOpen(true) },
+    { label: 'Sign out', icon: 'back', group: 'Do', run: async () => { await api.logout(); location.reload() } },
     { label: 'Add a task', icon: 'plus', group: 'Do', run: () => setAdding(true) },
     { label: 'Start a capture', icon: 'mic', group: 'Do', run: () => cap.toggle() },
     { label: theme === 'light' ? 'Switch to dark' : 'Switch to light', icon: theme === 'light' ? 'moon' : 'sun', group: 'Do', run: toggleTheme },
@@ -178,6 +182,7 @@ export default function App() {
         micLive={cap.live} micLevel={cap.level} onMic={cap.toggle}
         onAdd={() => setAdding(true)}
         onNotes={() => setNotesOpen((v) => !v)} notesOpen={notesOpen}
+        onSettings={() => setSettingsOpen(true)}
         onPalette={() => setPaletteOpen(true)}
         theme={theme} onTheme={toggleTheme}
       />
@@ -186,6 +191,7 @@ export default function App() {
       {giving && <GiveAward onClose={() => setGiving(false)} onDone={pull} />}
       {adding && <QuickTask onClose={() => setAdding(false)} onDone={pull} />}
       <Notes open={notesOpen} onClose={() => setNotesOpen(false)} />
+      {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} />}
     </div>
     </ConfirmProvider>
   )

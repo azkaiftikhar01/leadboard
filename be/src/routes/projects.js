@@ -57,8 +57,14 @@ r.put('/:id/members/:userId', async (req, res) => {
   if (existing) {
     if (req.body.allocation !== undefined) existing.allocation = req.body.allocation
     if (req.body.role !== undefined) existing.role = req.body.role
+    if (req.body.isManager !== undefined) existing.isManager = req.body.isManager
   } else {
-    project.members.push({ user: req.params.userId, allocation: req.body.allocation ?? 100, role: req.body.role || '' })
+    project.members.push({
+      user: req.params.userId,
+      allocation: req.body.allocation ?? 100,
+      role: req.body.role || '',
+      isManager: Boolean(req.body.isManager),
+    })
   }
   await project.save()
   res.json(await project.populate('members.user', 'name avatarColor title'))

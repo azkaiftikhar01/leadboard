@@ -21,7 +21,7 @@ export async function scoreboard({ weeks = 12 } = {}) {
   const since = new Date(Date.now() - weeks * 7 * DAY)
 
   const [people, awards, rework, deliveries, load] = await Promise.all([
-    User.find({ active: true, role: 'dev' }).lean(),
+    User.find({ active: true, role: { $in: ['dev', 'manager'] } }).lean(),
     Award.find({ givenAt: { $gte: since } }).lean(),
     ReworkEvent.find({ occurredAt: { $gte: since } }).lean(),
     Delivery.find({ actualDate: { $gte: since } }).lean(),

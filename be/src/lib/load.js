@@ -25,7 +25,7 @@ const band = (pct) => BANDS.find((b) => pct <= b.max)
 
 export async function teamLoad() {
   const [people, projects, openTasks] = await Promise.all([
-    User.find({ active: true, role: 'dev' }).sort('name').lean(),
+    User.find({ active: true, role: { $in: ['dev', 'manager'] } }).sort('name').lean(),
     Project.find({ status: { $in: ['active', 'paused'] } }).lean(),
     Task.find({ state: { $nin: ['done', 'dropped'] }, track: 'team' }).select('assignee project dueDate').lean(),
   ])

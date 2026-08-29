@@ -49,6 +49,7 @@ export function Projects() {
         <div className="grid c2">
           {projects.map((p) => {
             const mode = modes.find((m) => m.key === p.mode)
+            const managers = (p.members || []).filter((m) => m.isManager)
             return (
               <div key={p._id} className="card hover" style={{ cursor: 'pointer' }} onClick={() => setOpen(p)}>
                 <div className="row-between" style={{ marginBottom: 10 }}>
@@ -76,6 +77,13 @@ export function Projects() {
                     costs ×{mode?.weight ?? 1} per person
                   </span>
                 </div>
+
+                {managers.length > 0 && (
+                  <div className="pm-line">
+                    <Icon.crown size={12} />
+                    {managers.map((m) => m.user?.name).join(', ')}
+                  </div>
+                )}
 
                 <div className="card-actions">
                   <button
@@ -242,15 +250,23 @@ function ProjectDetail({ project, modes, people, onClose, onChanged, onAddTask }
                   <Avatar user={m.user} />
                   <div>
                     <div style={{ fontSize: 13.5, fontWeight: 550 }}>{m.user?.name}</div>
-                    <div className="dim" style={{ fontSize: 11.5 }}>
-                      {m.allocation}% × {mode?.weight ?? 1} = {Math.round(m.allocation * (mode?.weight ?? 1))} of their week
+                    <div className="dim inline" style={{ fontSize: 11.5, gap: 6 }}>
+                      {m.isManager && <Tag tone="amber"><Icon.crown size={11} /> PM</Tag>}
+                      <span>{m.allocation}% × {mode?.weight ?? 1} = {Math.round(m.allocation * (mode?.weight ?? 1))} of their week</span>
                     </div>
                   </div>
                 </div>
                 <div className="inline" style={{ gap: 9 }}>
+                  <button
+                    className={`pm-toggle${m.isManager ? ' on' : ''}`}
+                    title={m.isManager ? 'Project manager — click to unset' : 'Make project manager'}
+                    onClick={() => put(m.user._id, { isManager: !m.isManager })}
+                  >
+                    <Icon.crown size={14} />
+                  </button>
                   <input
                     className="range" type="range" min="10" max="100" step="10"
-                    style={{ width: 130 }} defaultValue={m.allocation}
+                    style={{ width: 110 }} defaultValue={m.allocation}
                     disabled={busy === m.user?._id}
                     onChange={(e) => put(m.user._id, { allocation: Number(e.target.value) })}
                   />
@@ -266,10 +282,18 @@ function ProjectDetail({ project, modes, people, onClose, onChanged, onAddTask }
         <div>
           <div className="eyebrow" style={{ marginBottom: 8 }}>Add someone</div>
           <div className="inline" style={{ gap: 6 }}>
-            {available.map((p) => (
-              <button key={p._id} className="btn sm" onClick={() => put(p._id, { allocation: 100 })}>
-                <><Icon.plus size={13} /> {p.name}</>
-              </button>
+            {available.map((u) => (
+              <span key={u._id} className="add-person">
+                <button className="btn sm" onClick={() => put(u._id, { allocation: 100 })}>
+                  <Icon.plus size={13} /> {u.name}
+                </button>
+                <button
+                  className="btn sm pm-add" title={`Add ${u.name} as project manager`}
+                  onClick={() => put(u._id, { allocation: 100, isManager: true })}
+                >
+                  <Icon.crown size={13} />
+                </button>
+              </span>
             ))}
           </div>
         </div>

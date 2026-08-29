@@ -19,6 +19,9 @@ const memberSchema = new mongoose.Schema(
     // the mode weight is applied
     allocation: { type: Number, default: 100, min: 0, max: 100 },
     role: { type: String, default: '' },
+    // who runs this project day to day. More than one is allowed, because
+    // co-leads happen and pretending otherwise just means it goes unrecorded.
+    isManager: { type: Boolean, default: false },
   },
   { _id: false }
 )

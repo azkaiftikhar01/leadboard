@@ -21,6 +21,8 @@ export const api = {
   authState: () => req('/auth/state'),
   login: (password) => req('/auth/login', { method: 'POST', body: JSON.stringify({ password }) }),
   logout: () => req('/auth/logout', { method: 'POST' }),
+  changePassphrase: (current, next) =>
+    req('/auth/change', { method: 'POST', body: JSON.stringify({ current, next }) }),
 
   today: () => req('/today'),
 
