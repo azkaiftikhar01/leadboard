@@ -1380,3 +1380,64 @@ input::placeholder { color: var(--text-3); }
   border-left: none; padding-left: 9px; padding-right: 11px; color: var(--text-3);
 }
 .add-person .pm-add:hover { color: var(--c-sun); }
+
+/* ============================================================
+   History
+   ============================================================ */
+.hist-filters {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 18px;
+}
+.hist-filters select { width: auto; min-width: 150px; }
+.hist-kinds { display: inline-flex; gap: 5px; margin-left: auto; flex-wrap: wrap; }
+.hist-kinds button {
+  padding: 6px 13px; border-radius: var(--r-pill);
+  font-size: 12.5px; font-weight: 620; color: var(--text-3);
+  border: 1px solid var(--line); background: var(--s-1);
+  transition: all .14s var(--ease);
+}
+.hist-kinds button:hover { color: var(--text); border-color: var(--line-2); }
+.hist-kinds button.on { background: var(--s-3); color: var(--text); border-color: transparent; }
+
+.hist-day { margin-bottom: 20px; }
+.hist-day h3 {
+  font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: 9px; padding-left: 2px;
+}
+.hist-list {
+  background: var(--s-1); border: 1px solid var(--line);
+  border-radius: var(--r-lg); box-shadow: var(--sh-1); overflow: hidden;
+}
+
+.hist-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 13px 16px; border-bottom: 1px solid var(--line);
+  transition: background .14s var(--ease);
+}
+.hist-row:last-child { border-bottom: none; }
+.hist-row:hover { background: var(--s-2); }
+.hist-row .body { flex: 1; min-width: 0; }
+.hist-row .t { font-size: 14px; font-weight: 550; line-height: 1.4; }
+.hist-row .m {
+  font-size: 12.5px; color: var(--text-3); margin-top: 4px;
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+}
+
+.hist-ico {
+  width: 28px; height: 28px; border-radius: var(--r-pill); flex: none; margin-top: 1px;
+  display: grid; place-items: center;
+}
+.hist-row.completed .hist-ico { background: var(--good-bg); color: var(--good); }
+.hist-row.rework    .hist-ico { background: var(--bad-bg);  color: var(--bad); }
+.hist-row.award     .hist-ico { background: var(--warn-bg); color: var(--warn); }
+.hist-row.standup   .hist-ico { background: var(--info-bg); color: var(--c-primary); }
+
+.hist-right { display: flex; align-items: center; gap: 9px; flex: none; }
+.hist-right time { font-size: 11.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+  .hist-filters select { flex: 1; min-width: 0; }
+  .hist-kinds { margin-left: 0; width: 100%; }
+  .hist-kinds button { flex: 1; padding: 6px 8px; }
+  .hist-row { padding: 12px 13px; gap: 10px; }
+  .hist-right time { display: none; }
+}

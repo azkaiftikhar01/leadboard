@@ -5,6 +5,7 @@ import { Projects } from './views/Projects.jsx'
 import { Review } from './views/Review.jsx'
 import { Standup } from './views/Standup.jsx'
 import { Scoreboard } from './views/Scoreboard.jsx'
+import { History } from './views/History.jsx'
 import { Inbox } from './views/Inbox.jsx'
 import { Start } from './views/Start.jsx'
 import { Lock } from './views/Lock.jsx'
@@ -40,11 +41,12 @@ const DOCK = [
   { side: 'r', to: '#/projects', label: 'Projects', icon: 'projects', sec: true },
   { side: 'r', to: '#/team', label: 'Team', icon: 'team', sec: true },
   { side: 'r', to: '#/score', label: 'Scoreboard', icon: 'chart', sec: true },
+  { side: 'r', to: '#/history', label: 'History', icon: 'history', sec: true },
 ]
 
 const ROUTES = {
   '#/standup': Standup, '#/review': Review, '#/inbox': Inbox,
-  '#/team': Team, '#/projects': Projects, '#/score': Scoreboard,
+  '#/team': Team, '#/projects': Projects, '#/score': Scoreboard, '#/history': History,
 }
 
 export default function App() {
@@ -115,6 +117,7 @@ export default function App() {
     { label: 'Team & bandwidth', icon: 'team', group: 'Go', run: () => go('#/team') },
     { label: 'Projects', icon: 'projects', group: 'Go', run: () => go('#/projects') },
     { label: 'Scoreboard', icon: 'chart', group: 'Go', run: () => go('#/score') },
+    { label: 'History — what already happened', icon: 'history', group: 'Go', run: () => go('#/history') },
     { label: 'Notes', icon: 'note', group: 'Go', run: () => setNotesOpen(true) },
     { label: 'Log what you saw', icon: 'spark', group: 'Do', run: () => setGiving(true) },
     { label: 'Change the passphrase', icon: 'gear', group: 'Do', run: () => setSettingsOpen(true) },

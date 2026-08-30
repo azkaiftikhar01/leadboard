@@ -16,7 +16,11 @@ const deliverySchema = new mongoose.Schema(
 
 deliverySchema.pre('save', function (next) {
   if (this.promisedDate && this.actualDate) {
-    this.varianceDays = Math.round((this.actualDate - this.promisedDate) / 86_400_000)
+    // a promised date is a day: delivering at any point during it is on time,
+    // so measure from the end of that day rather than from its midnight
+    const due = new Date(this.promisedDate)
+    due.setHours(23, 59, 59, 999)
+    this.varianceDays = Math.ceil((this.actualDate - due) / 86_400_000)
   }
   next()
 })

@@ -55,6 +55,9 @@ export const api = {
   giveAward: (b) => req('/awards', { method: 'POST', body: JSON.stringify(b) }),
   undoAward: (id) => req(`/awards/${id}`, { method: 'DELETE' }),
 
+  // history
+  history: (q = '') => req(`/history${q}`),
+
   // notes
   notes: (q = '') => req(`/notes${q}`),
   addNote: (b) => req('/notes', { method: 'POST', body: JSON.stringify(b) }),
