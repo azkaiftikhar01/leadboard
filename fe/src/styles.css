@@ -1441,3 +1441,14 @@ input::placeholder { color: var(--text-3); }
   .hist-row { padding: 12px 13px; gap: 10px; }
   .hist-right time { display: none; }
 }
+
+.lock-help {
+  margin-top: 16px; font-size: 12.5px; font-weight: 600;
+  color: var(--text-3); transition: color .14s var(--ease);
+}
+.lock-help:hover { color: var(--c-orange); }
+.lock-help-text {
+  margin-top: 10px; font-size: 12.5px; line-height: 1.6;
+  color: var(--text-2); text-align: center;
+  background: var(--s-2); border-radius: var(--r-sm); padding: 11px 13px;
+}

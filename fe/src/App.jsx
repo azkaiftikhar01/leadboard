@@ -66,6 +66,18 @@ export default function App() {
   }, [])
   const cap = useCapture({ source: 'window' })
 
+  /** Back to the lock screen, and back to Today for whoever signs in next -
+   *  landing a new session mid-way through someone else's page is disorienting. */
+  const signOut = useCallback(async () => {
+    await api.logout().catch(() => {})
+    setSettingsOpen(false)
+    setNotesOpen(false)
+    setPaletteOpen(false)
+    setCounts(null)
+    location.hash = '#/'
+    setAuthed(false)
+  }, [])
+
   const pull = useCallback(async () => {
     try {
       const [today, review, people, projects] = await Promise.all([
@@ -77,7 +89,10 @@ export default function App() {
         projects: projects.length,
         assigned: projects.filter((p) => p.members?.length).length,
       })
-    } catch { setCounts((c) => c ?? {}) }
+    } catch (e) {
+      if (e?.unauthorized) return setAuthed(false)
+      setCounts((c) => c ?? {})
+    }
   }, [])
 
   useEffect(() => { pull() }, [hash, pull])
@@ -121,7 +136,7 @@ export default function App() {
     { label: 'Notes', icon: 'note', group: 'Go', run: () => setNotesOpen(true) },
     { label: 'Log what you saw', icon: 'spark', group: 'Do', run: () => setGiving(true) },
     { label: 'Change the passphrase', icon: 'gear', group: 'Do', run: () => setSettingsOpen(true) },
-    { label: 'Sign out', icon: 'back', group: 'Do', run: async () => { await api.logout(); location.reload() } },
+    { label: 'Sign out', icon: 'back', group: 'Do', run: signOut },
     { label: 'Add a task', icon: 'plus', group: 'Do', run: () => setAdding(true) },
     { label: 'Start a capture', icon: 'mic', group: 'Do', run: () => cap.toggle() },
     { label: theme === 'light' ? 'Switch to dark' : 'Switch to light', icon: theme === 'light' ? 'moon' : 'sun', group: 'Do', run: toggleTheme },
@@ -194,7 +209,9 @@ export default function App() {
       {giving && <GiveAward onClose={() => setGiving(false)} onDone={pull} />}
       {adding && <QuickTask onClose={() => setAdding(false)} onDone={pull} />}
       <Notes open={notesOpen} onClose={() => setNotesOpen(false)} />
-      {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && (
+        <Settings onClose={() => setSettingsOpen(false)} onSignedOut={signOut} />
+      )}
     </div>
     </ConfirmProvider>
   )

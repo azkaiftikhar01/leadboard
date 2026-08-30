@@ -13,6 +13,7 @@ import { Icon } from '../components/ui.jsx'
 export function Lock({ onIn }) {
   const [pw, setPw] = useState('')
   const [state, setState] = useState('idle') // idle | busy | wrong | in
+  const [help, setHelp] = useState(false)
 
   const go = async (e) => {
     e?.preventDefault()
@@ -59,6 +60,16 @@ export function Lock({ onIn }) {
               : <Icon.arrow size={18} />}
           </button>
         </div>
+        <button type="button" className="lock-help" onClick={() => setHelp((v) => !v)}>
+          Forgotten it?
+        </button>
+
+        {help && (
+          <p className="lock-help-text">
+            Use the <b>APP_PASSWORD</b> from your deployment settings — it always works,
+            so you can get back in and set a new one from Settings.
+          </p>
+        )}
       </form>
     </div>
   )

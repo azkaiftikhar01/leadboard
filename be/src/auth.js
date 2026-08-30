@@ -11,22 +11,37 @@ import Setting from './models/Setting.js'
  * performance, with names attached.
  *
  * The live passphrase is stored hashed in the database so it can be changed from
- * inside the app. APP_PASSWORD is the bootstrap - it works until a passphrase is
- * set, and is ignored afterwards.
+ * inside the app. APP_PASSWORD stays valid as a recovery key, because there is
+ * no email on this account and no way to prove who you are - a forgotten
+ * passphrase with no fallback is a permanently bricked board. That is a real
+ * trade: anyone who can read the deployment config can get in. They can also
+ * read the database directly, so it is not the weakest link.
  */
 const COOKIE = 'lb_session'
 const KEY = 'passphrase'
 const DAYS = 30
 
-const secret = () => process.env.AUTH_SECRET || process.env.APP_PASSWORD || 'dev-only'
+const stored = async () => (await Setting.findOne({ key: KEY }).lean())?.value || null
 
-const sign = (exp) =>
-  `${exp}.${crypto.createHmac('sha256', secret()).update(String(exp)).digest('hex')}`
+/**
+ * The cookie secret folds in the current passphrase hash, so changing the
+ * passphrase invalidates every session signed under the old one. Without that,
+ * "everyone else is signed out" would be a claim the code did not honour.
+ */
+const secretFor = async () => {
+  const rec = await stored()
+  return `${process.env.AUTH_SECRET || process.env.APP_PASSWORD || 'dev-only'}|${rec?.hash ?? 'bootstrap'}`
+}
 
-const validCookie = (token) => {
+const sign = async (exp) => {
+  const mac = crypto.createHmac('sha256', await secretFor()).update(String(exp)).digest('hex')
+  return `${exp}.${mac}`
+}
+
+const validCookie = async (token) => {
   const [exp, mac] = String(token || '').split('.')
   if (!exp || !mac || Number(exp) < Date.now()) return false
-  const expected = crypto.createHmac('sha256', secret()).update(exp).digest('hex')
+  const expected = crypto.createHmac('sha256', await secretFor()).update(exp).digest('hex')
   const a = Buffer.from(mac)
   const b = Buffer.from(expected)
   return a.length === b.length && crypto.timingSafeEqual(a, b)
@@ -40,10 +55,15 @@ const readCookie = (req) =>
     })
   )[COOKIE]
 
-/* ---------------- passphrase storage ---------------- */
+/* ---------------- passphrase ---------------- */
 
-const hash = (plain, salt) =>
-  crypto.scryptSync(plain, salt, 64).toString('hex')
+const hash = (plain, salt) => crypto.scryptSync(plain, salt, 64).toString('hex')
+
+const same = (a, b) => {
+  const x = Buffer.from(a)
+  const y = Buffer.from(b)
+  return x.length === y.length && crypto.timingSafeEqual(x, y)
+}
 
 const store = async (plain) => {
   const salt = crypto.randomBytes(16).toString('hex')
@@ -54,21 +74,14 @@ const store = async (plain) => {
   )
 }
 
-const stored = async () => (await Setting.findOne({ key: KEY }).lean())?.value || null
-
+/** Their passphrase, or the recovery key from the deployment config. */
 const matches = async (plain) => {
+  if (!plain) return { ok: false, viaRecovery: false }
   const rec = await stored()
-  if (rec) {
-    const a = Buffer.from(hash(plain, rec.salt))
-    const b = Buffer.from(rec.hash)
-    return a.length === b.length && crypto.timingSafeEqual(a, b)
-  }
-  // no passphrase set yet - fall back to the bootstrap env var
+  if (rec && same(hash(plain, rec.salt), rec.hash)) return { ok: true, viaRecovery: false }
   const env = process.env.APP_PASSWORD || ''
-  if (!env) return false
-  const a = Buffer.from(plain)
-  const b = Buffer.from(env)
-  return a.length === b.length && crypto.timingSafeEqual(a, b)
+  if (env && same(plain, env)) return { ok: true, viaRecovery: Boolean(rec) }
+  return { ok: false, viaRecovery: false }
 }
 
 const gateOn = async () => Boolean(process.env.APP_PASSWORD || (await stored()))
@@ -82,15 +95,15 @@ export async function requireAuth(req, res, next) {
     }
     return next()
   }
-  if (validCookie(readCookie(req))) return next()
+  if (await validCookie(readCookie(req))) return next()
   res.status(401).json({ error: 'unauthorized' })
 }
 
-const setCookie = (res) => {
+const issue = async (res) => {
   const exp = Date.now() + DAYS * 86_400_000
   res.setHeader(
     'Set-Cookie',
-    `${COOKIE}=${sign(exp)}; Path=/; Max-Age=${DAYS * 86400}; HttpOnly; SameSite=Lax${
+    `${COOKIE}=${await sign(exp)}; Path=/; Max-Age=${DAYS * 86400}; HttpOnly; SameSite=Lax${
       process.env.NODE_ENV === 'production' ? '; Secure' : ''
     }`
   )
@@ -100,40 +113,48 @@ export const authRoutes = Router()
 
 authRoutes.get('/state', async (req, res) => {
   const on = await gateOn()
+  const rec = await stored()
   res.json({
     required: on,
-    authed: !on || validCookie(readCookie(req)),
-    // true while still on the env var, so the UI can nudge him to set his own
-    usingBootstrap: !(await stored()) && Boolean(process.env.APP_PASSWORD),
+    authed: !on || (await validCookie(readCookie(req))),
+    // still on the deployment passphrase, so the UI can nudge him to set his own
+    usingBootstrap: !rec && Boolean(process.env.APP_PASSWORD),
+    // whether a recovery key exists at all, so the lock screen can say so honestly
+    hasRecovery: Boolean(process.env.APP_PASSWORD),
   })
 })
 
 authRoutes.post('/login', async (req, res) => {
-  const given = String(req.body?.password || '')
-  if (!given || !(await matches(given))) return res.status(401).json({ error: 'Wrong passphrase' })
-  setCookie(res)
-  res.json({ ok: true })
+  const { ok, viaRecovery } = await matches(String(req.body?.password || ''))
+  if (!ok) return res.status(401).json({ error: 'Wrong passphrase' })
+  await issue(res)
+  res.json({ ok: true, viaRecovery })
 })
 
-/** Change it from inside the board. Requires the current one. */
+/** Change it from inside the board. Requires the current one, or the recovery key. */
 authRoutes.post('/change', async (req, res) => {
   const { current, next } = req.body || {}
   if (!next || String(next).length < 6) {
     return res.status(400).json({ error: 'New passphrase needs at least 6 characters' })
   }
   if (await gateOn()) {
-    if (!validCookie(readCookie(req))) return res.status(401).json({ error: 'unauthorized' })
-    if (!(await matches(String(current || '')))) {
-      return res.status(401).json({ error: 'Current passphrase is wrong' })
-    }
+    if (!(await validCookie(readCookie(req)))) return res.status(401).json({ error: 'unauthorized' })
+    const { ok } = await matches(String(current || ''))
+    if (!ok) return res.status(401).json({ error: 'Current passphrase is wrong' })
   }
   await store(String(next))
-  // re-sign so the session survives the change
-  setCookie(res)
+  // the secret just changed, so every existing cookie is now void - re-issue
+  // this one so he is not signed out by his own change
+  await issue(res)
   res.json({ ok: true })
 })
 
 authRoutes.post('/logout', (_req, res) => {
-  res.setHeader('Set-Cookie', `${COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`)
+  res.setHeader(
+    'Set-Cookie',
+    `${COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${
+      process.env.NODE_ENV === 'production' ? '; Secure' : ''
+    }`
+  )
   res.json({ ok: true })
 })
