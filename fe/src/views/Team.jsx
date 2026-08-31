@@ -111,13 +111,14 @@ function AddDev({ onClose, onSaved }) {
   const [name, setName] = useState('')
   const [title, setTitle] = useState('')
   const [capacity, setCapacity] = useState(100)
+  const [role, setRole] = useState('dev')
   const [busy, setBusy] = useState(false)
 
   const save = async () => {
     if (!name.trim()) return
     setBusy(true)
     try {
-      await api.addPerson({ name: name.trim(), title: title.trim(), capacityPercent: Number(capacity) })
+      await api.addPerson({ name: name.trim(), title: title.trim(), role, capacityPercent: Number(capacity) })
       onSaved()
     } finally { setBusy(false) }
   }
@@ -140,8 +141,26 @@ function AddDev({ onClose, onSaved }) {
         <input type="text" autoFocus value={name} placeholder="Asad" onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && save()} />
       </Field>
-      <Field label="Role">
+      <Field label="What they do">
         <input type="text" value={title} placeholder="Frontend" onChange={(e) => setTitle(e.target.value)} />
+      </Field>
+      <Field label="On this board">
+        <div className="seg" style={{ width: '100%' }}>
+          {[
+            { k: 'dev', l: 'Developer' },
+            { k: 'manager', l: 'Manager' },
+            { k: 'lead', l: 'Team lead' },
+          ].map((r) => (
+            <button key={r.k} className={role === r.k ? 'on' : ''} style={{ flex: 1 }} onClick={() => setRole(r.k)}>
+              {r.l}
+            </button>
+          ))}
+        </div>
+        <div className="dim" style={{ fontSize: 11.5 }}>
+          {role === 'lead'
+            ? 'The board owner — the “On me” track is theirs, and it travels with their shared list.'
+            : 'Counts toward load and the scoreboard.'}
+        </div>
       </Field>
       <Field label={`Availability — ${capacity}% of a full week`}>
         <input className="range" type="range" min="20" max="100" step="10" value={capacity}
@@ -189,10 +208,29 @@ function DevDetail({ row, onClose, onChanged }) {
       foot={
         <>
           <button className="btn danger" onClick={remove}><Icon.trash size={14} /> Remove</button>
+          <span style={{ flex: 1 }} />
           <button className="btn" onClick={onClose}>Close</button>
         </>
       }
     >
+      <Field label="On this board">
+        <div className="seg" style={{ width: '100%' }}>
+          {[
+            { k: 'dev', l: 'Developer' },
+            { k: 'manager', l: 'Manager' },
+            { k: 'lead', l: 'Team lead' },
+          ].map((r) => (
+            <button
+              key={r.k} style={{ flex: 1 }}
+              className={(row.user.role || 'dev') === r.k ? 'on' : ''}
+              onClick={async () => { await api.patchPerson(row.user._id, { role: r.k }); onChanged() }}
+            >
+              {r.l}
+            </button>
+          ))}
+        </div>
+      </Field>
+
       <div>
         <div className="eyebrow" style={{ marginBottom: 8 }}>What their week is made of</div>
         {row.assignments.length === 0 ? (

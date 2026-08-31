@@ -13,15 +13,16 @@ const linkFor = (token) => `${location.origin}${location.pathname}#/b/${token}`
  * you cannot tick off is just a screenshot.
  */
 export function ShareLink({ kind, refId, name, onClose }) {
+  const mine = kind === 'mine'
   const [share, setShare] = useState(null)
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    api.shares(`?kind=${kind}&refId=${refId}`)
+    api.shares(mine ? '?kind=mine' : `?kind=${kind}&refId=${refId}`)
       .then((rows) => setShare(rows[0] ?? null))
       .catch(() => setShare(null))
-  }, [kind, refId])
+  }, [kind, refId, mine])
 
   const create = async () => {
     setBusy(true)
@@ -43,7 +44,7 @@ export function ShareLink({ kind, refId, name, onClose }) {
 
   return (
     <Modal
-      title={`Share ${name}’s list`}
+      title={mine ? 'Share your list' : `Share ${name}’s list`}
       sub="A link they can open without an account, and tick things off from."
       onClose={onClose}
       foot={<button className="btn" onClick={onClose}>Close</button>}
@@ -51,8 +52,8 @@ export function ShareLink({ kind, refId, name, onClose }) {
       {!share ? (
         <>
           <p className="muted" style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-            Creates a private link showing only {name}’s open tasks. No scores, no
-            load, nothing about anyone else. You can revoke it at any time.
+            Creates a private link showing only {mine ? 'your own' : `${name}’s`} open tasks.
+            No scores, no load, nothing about anyone else. You can revoke it at any time.
           </p>
           <button className="btn primary wide" disabled={busy} onClick={create}>
             {busy ? <span className="spinner" /> : <>Create the link</>}

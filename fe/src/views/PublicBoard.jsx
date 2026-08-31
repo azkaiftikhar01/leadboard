@@ -93,6 +93,7 @@ export function PublicBoard({ token }) {
                     <div className="m">
                       {t.project?.name && <span>{t.project.name}</span>}
                       {t.assignee?.name && <span>{t.assignee.name}</span>}
+                      {t.waitingOnLabel && <span>for {t.waitingOnLabel}</span>}
                       {d && <span className={`tag ${d.tone}`}>{d.t}</span>}
                       {t.daysOnTask >= 3 && <span className="tag amber">day {t.daysOnTask}</span>}
                     </div>

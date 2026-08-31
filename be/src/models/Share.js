@@ -12,8 +12,9 @@ import crypto from 'node:crypto'
 const shareSchema = new mongoose.Schema(
   {
     token: { type: String, unique: true, index: true, default: () => crypto.randomBytes(18).toString('base64url') },
-    kind: { type: String, enum: ['person', 'project'], required: true },
-    refId: { type: mongoose.Schema.Types.ObjectId, required: true },
+    kind: { type: String, enum: ['person', 'project', 'mine'], required: true },
+    /** absent for a 'mine' share, which has no subject other than the owner */
+    refId: { type: mongoose.Schema.Types.ObjectId },
     label: { type: String, default: '' },
     /** whether whoever holds the link may tick things off */
     canComplete: { type: Boolean, default: true },

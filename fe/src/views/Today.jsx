@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { useConfirm } from '../components/Confirm.jsx'
+import { ShareLink } from '../components/ShareLink.jsx'
 import { Avatar, Tag, Empty, Streak, Modal, Field, Spinner, Dial, Spark, Icon, dueLabel } from '../components/ui.jsx'
 
 const TRACKS = [
@@ -18,6 +19,7 @@ export function Today() {
   const confirm = useConfirm()
   const [data, setData] = useState(null)
   const [adding, setAdding] = useState(null)
+  const [sharingMine, setSharingMine] = useState(false)
   const [err, setErr] = useState(null)
 
   const load = () => api.today().then(setData).catch((e) => setErr(e.message))
@@ -66,6 +68,9 @@ export function Today() {
           </div>
         </div>
         <div className="inline">
+          <button className="btn sm" onClick={() => setSharingMine(true)} title="Share your own list">
+            <Icon.arrow size={14} /> Share my list
+          </button>
           <Streak count={data.streak} />
           {!data.standupDone && <a href="#/standup" className="btn primary">Start standup <Icon.arrow size={15} /></a>}
         </div>
@@ -105,6 +110,10 @@ export function Today() {
           )
         })}
       </div>
+
+      {sharingMine && (
+        <ShareLink kind="mine" name="my" onClose={() => setSharingMine(false)} />
+      )}
 
       {adding && <AddTask track={adding} onClose={() => setAdding(null)} onSaved={() => { setAdding(null); load() }} />}
     </>
