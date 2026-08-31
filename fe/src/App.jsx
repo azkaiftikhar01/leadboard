@@ -159,7 +159,7 @@ export default function App() {
     <div className="shell">
       <Aura />
       <a href="#/" className="brand-corner" aria-label="LeadBoard — Today">
-        <img src="/logo-wordmark.png" alt="LeadBoard" />
+        <img src="/logo-wordmark.svg" alt="LeadBoard" />
       </a>
       <main className="main">
         {firstRun ? <Start counts={counts} onGo={go} /> : <View />}

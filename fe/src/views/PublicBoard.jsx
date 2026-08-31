@@ -51,7 +51,7 @@ export function PublicBoard({ token }) {
     return (
       <div className="pub">
         <div className="pub-card" style={{ textAlign: 'center' }}>
-          <img src="/logo-wordmark.png" alt="LeadBoard" className="pub-logo" />
+          <img src="/logo-wordmark.svg" alt="LeadBoard" className="pub-logo" />
           <p className="muted" style={{ marginTop: 14 }}>{err}</p>
         </div>
       </div>
@@ -65,7 +65,7 @@ export function PublicBoard({ token }) {
 
       <div className="pub-card">
         <header className="pub-head">
-          <img src="/logo-wordmark.png" alt="LeadBoard" className="pub-logo" />
+          <img src="/logo-wordmark.svg" alt="LeadBoard" className="pub-logo" />
           <h1>{data.title}</h1>
           <p>
             {data.open.length === 0

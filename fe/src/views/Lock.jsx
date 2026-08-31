@@ -35,7 +35,7 @@ export function Lock({ onIn }) {
       <div className="aura" aria-hidden="true"><b /><b /><b /></div>
 
       <form className={`lock-card ${state}`} onSubmit={go}>
-        <img src="/logo-wordmark.png" alt="LeadBoard" className="lock-logo" />
+        <img src="/logo-wordmark.svg" alt="LeadBoard" className="lock-logo" />
 
         <p className="lock-sub">
           {state === 'in'
