@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { Avatar, Tag, Empty, EmptyArt, Modal, Field, LoadMeter, Spinner, Dial, Icon } from '../components/ui.jsx'
 import { useConfirm } from '../components/Confirm.jsx'
+import { ShareLink } from '../components/ShareLink.jsx'
 
 const BAND_LABEL = { free: 'Has room', ok: 'Comfortable', full: 'Full', over: 'Overloaded' }
 
@@ -14,6 +15,7 @@ export function Team() {
   const [rows, setRows] = useState(null)
   const [adding, setAdding] = useState(false)
   const [open, setOpen] = useState(null)
+  const [sharing, setSharing] = useState(null)
 
   const load = () => api.teamLoad().then(setRows)
   useEffect(() => { load() }, [])
@@ -69,6 +71,15 @@ export function Team() {
                 </span>
               </div>
 
+              <div className="card-actions">
+                <button
+                  className="btn sm"
+                  onClick={(e) => { e.stopPropagation(); setSharing(r.user) }}
+                >
+                  <Icon.arrow size={13} /> Share their list
+                </button>
+              </div>
+
               <div className="inline" style={{ marginTop: 11, gap: 6 }}>
                 {r.assignments.length === 0 ? (
                   <Tag>on nothing</Tag>
@@ -89,6 +100,9 @@ export function Team() {
 
       {adding && <AddDev onClose={() => setAdding(false)} onSaved={() => { setAdding(false); load() }} />}
       {open && <DevDetail row={open} onClose={() => setOpen(null)} onChanged={load} />}
+      {sharing && (
+        <ShareLink kind="person" refId={sharing._id} name={sharing.name} onClose={() => setSharing(null)} />
+      )}
     </>
   )
 }

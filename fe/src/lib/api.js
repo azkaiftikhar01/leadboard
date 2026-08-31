@@ -38,7 +38,12 @@ export const api = {
   scorecard: (id) => req(`/people/${id}/scorecard`),
   rework: (id) => req(`/people/${id}/rework`),
   // projects
-  projects: () => req('/projects'),
+  /** Every caller that just wants a list of projects to pick from. The paged
+   *  endpoint returns an envelope; unwrap it here rather than in six places. */
+  projects: () => req('/projects?perPage=100').then((r) => r.items ?? r),
+  projectsPage: (params) => req(`/projects?${new URLSearchParams(params)}`),
+  endProject: (id) => req(`/projects/${id}/end`, { method: 'POST', body: JSON.stringify({}) }),
+  restoreProject: (id) => req(`/projects/${id}/restore`, { method: 'POST', body: JSON.stringify({}) }),
   projectModes: () => req('/projects/modes'),
   addProject: (b) => req('/projects', { method: 'POST', body: JSON.stringify(b) }),
   patchProject: (id, b) => req(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(b) }),
@@ -54,6 +59,16 @@ export const api = {
   awards: (q = '') => req(`/awards${q}`),
   giveAward: (b) => req('/awards', { method: 'POST', body: JSON.stringify(b) }),
   undoAward: (id) => req(`/awards/${id}`, { method: 'DELETE' }),
+
+  // focus
+  focusState: () => req('/focus'),
+  startFocus: (b) => req('/focus', { method: 'POST', body: JSON.stringify(b) }),
+  endFocus: (id, completed) => req(`/focus/${id}/end`, { method: 'POST', body: JSON.stringify({ completed }) }),
+
+  // sharing
+  shares: (q = '') => req(`/shares${q}`),
+  createShare: (b) => req('/shares', { method: 'POST', body: JSON.stringify(b) }),
+  revokeShare: (id) => req(`/shares/${id}/revoke`, { method: 'POST', body: JSON.stringify({}) }),
 
   // history
   history: (q = '') => req(`/history${q}`),

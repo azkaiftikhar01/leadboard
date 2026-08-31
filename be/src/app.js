@@ -14,6 +14,8 @@ import today from './routes/today.js'
 import awards from './routes/awards.js'
 import notes from './routes/notes.js'
 import history from './routes/history.js'
+import focus from './routes/focus.js'
+import { shareAdmin, sharePublic } from './routes/share.js'
 import { requireAuth, authRoutes } from './auth.js'
 
 const app = express()
@@ -35,6 +37,10 @@ app.use(async (_req, _res, next) => {
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 app.use('/api/auth', authRoutes)
 
+// public, token-only: a dev opening his own to-do list has no account here, so
+// this has to sit ABOVE the gate rather than behind it
+app.use('/api/public/board', sharePublic)
+
 // everything past here is the team's performance record - it does not go out
 // to whoever finds the URL
 app.use('/api', requireAuth)
@@ -49,6 +55,8 @@ app.use('/api/today', today)
 app.use('/api/awards', awards)
 app.use('/api/notes', notes)
 app.use('/api/history', history)
+app.use('/api/focus', focus)
+app.use('/api/shares', shareAdmin)
 
 app.use((err, _req, res, _next) => {
   console.error(err)

@@ -9,6 +9,7 @@ import { History } from './views/History.jsx'
 import { Inbox } from './views/Inbox.jsx'
 import { Start } from './views/Start.jsx'
 import { Lock } from './views/Lock.jsx'
+import { PublicBoard } from './views/PublicBoard.jsx'
 import { Mic } from './components/Mic.jsx'
 import { Dock } from './components/Dock.jsx'
 import { Palette } from './components/Palette.jsx'
@@ -19,6 +20,7 @@ import { ConfirmProvider } from './components/Confirm.jsx'
 import { QuickTask } from './components/QuickTask.jsx'
 import { Notes } from './components/Notes.jsx'
 import { Settings } from './components/Settings.jsx'
+import { Focus } from './components/Focus.jsx'
 import { useTheme } from './lib/useTheme.js'
 import { useCapture } from './lib/useCapture.js'
 import { api } from './lib/api.js'
@@ -59,6 +61,7 @@ export default function App() {
   const [adding, setAdding] = useState(false)
   const [notesOpen, setNotesOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [focusOpen, setFocusOpen] = useState(false)
   const [authed, setAuthed] = useState(null)
 
   useEffect(() => {
@@ -108,11 +111,16 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'Space') { e.preventDefault(); cap.toggle() }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') { e.preventDefault(); setAdding(true) }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') { e.preventDefault(); setNotesOpen((v) => !v) }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && e.shiftKey) { e.preventDefault(); setFocusOpen(true) }
       if (e.key === 'Escape' && (cap.live || cap.capture || cap.error)) cap.dismiss()
     }
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
   }, [cap])
+
+  // a shared link is its own front door: no passphrase, no dock, no board
+  const shared = hash.match(/^#\/b\/(.+)$/)
+  if (shared) return <PublicBoard token={decodeURIComponent(shared[1])} />
 
   if (authed === null) return <div className="lock"><span className="spinner" /></div>
   if (authed === false) return <Lock onIn={() => { setAuthed(true); pull() }} />
@@ -134,6 +142,7 @@ export default function App() {
     { label: 'Scoreboard', icon: 'chart', group: 'Go', run: () => go('#/score') },
     { label: 'History — what already happened', icon: 'history', group: 'Go', run: () => go('#/history') },
     { label: 'Notes', icon: 'note', group: 'Go', run: () => setNotesOpen(true) },
+    { label: 'Focus for a while', icon: 'focus', group: 'Do', run: () => setFocusOpen(true) },
     { label: 'Log what you saw', icon: 'spark', group: 'Do', run: () => setGiving(true) },
     { label: 'Change the passphrase', icon: 'gear', group: 'Do', run: () => setSettingsOpen(true) },
     { label: 'Sign out', icon: 'back', group: 'Do', run: signOut },
@@ -200,6 +209,7 @@ export default function App() {
         micLive={cap.live} micLevel={cap.level} onMic={cap.toggle}
         onAdd={() => setAdding(true)}
         onNotes={() => setNotesOpen((v) => !v)} notesOpen={notesOpen}
+        onFocus={() => setFocusOpen(true)}
         onSettings={() => setSettingsOpen(true)}
         onPalette={() => setPaletteOpen(true)}
         theme={theme} onTheme={toggleTheme}
@@ -209,6 +219,7 @@ export default function App() {
       {giving && <GiveAward onClose={() => setGiving(false)} onDone={pull} />}
       {adding && <QuickTask onClose={() => setAdding(false)} onDone={pull} />}
       <Notes open={notesOpen} onClose={() => setNotesOpen(false)} />
+      <Focus open={focusOpen} onClose={() => setFocusOpen(false)} onFinished={pull} />
       {settingsOpen && (
         <Settings onClose={() => setSettingsOpen(false)} onSignedOut={signOut} />
       )}

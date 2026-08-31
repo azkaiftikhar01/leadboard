@@ -9,13 +9,49 @@ r.get('/modes', (_req, res) =>
   res.json(Object.entries(PROJECT_MODES).map(([key, v]) => ({ key, ...v })))
 )
 
-r.get('/', async (_req, res) => {
-  res.json(
-    await Project.find({ status: { $ne: 'archived' } })
+const SORTS = {
+  name: { name: 1 },
+  recent: { updatedAt: -1 },
+  deadline: { targetDate: 1 },
+  mode: { mode: 1, name: 1 },
+}
+
+r.get('/', async (req, res) => {
+  const q = {}
+  // archived is opt-in; shipped stays visible because a finished project is
+  // still something he looks back at, where an archived one is put away
+  q.status = req.query.status
+    ? req.query.status
+    : { $ne: 'archived' }
+
+  if (req.query.q) {
+    const rx = new RegExp(String(req.query.q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
+    q.$or = [{ name: rx }, { client: rx }, { aliases: rx }]
+  }
+
+  const page = Math.max(1, Number(req.query.page) || 1)
+  const perPage = Math.min(Number(req.query.perPage) || 24, 100)
+  const sort = SORTS[req.query.sort] || SORTS.name
+
+  const [items, total, counts] = await Promise.all([
+    Project.find(q)
       .populate('members.user', 'name avatarColor title')
-      .sort('name')
-      .lean({ virtuals: true })
-  )
+      .sort(sort)
+      .skip((page - 1) * perPage)
+      .limit(perPage)
+      .lean({ virtuals: true }),
+    Project.countDocuments(q),
+    Project.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }]),
+  ])
+
+  res.json({
+    items,
+    total,
+    page,
+    perPage,
+    pages: Math.max(1, Math.ceil(total / perPage)),
+    counts: Object.fromEntries(counts.map((c) => [c._id, c.n])),
+  })
 })
 
 r.post('/', async (req, res) => {
@@ -47,6 +83,16 @@ r.delete('/:id', async (req, res) => {
 
 r.post('/:id/restore', async (req, res) => {
   res.json(await Project.findByIdAndUpdate(req.params.id, { status: 'active' }, { new: true }))
+})
+
+/** End it. Shipped, not archived - the work is finished, the record stays out. */
+r.post('/:id/end', async (req, res) => {
+  const project = await Project.findByIdAndUpdate(req.params.id, { status: 'shipped' }, { new: true })
+  const open = await Task.countDocuments({
+    project: req.params.id,
+    state: { $nin: ['done', 'dropped'] },
+  })
+  res.json({ project, openTasksLeft: open })
 })
 
 /** Put someone on a project, or change what share of their week it takes. */

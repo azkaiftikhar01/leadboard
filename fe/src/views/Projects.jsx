@@ -9,40 +9,104 @@ import { useConfirm } from '../components/Confirm.jsx'
  * project actually eats — a support project at 100% allocation only spends 45%
  * of them — so it is set at creation and changeable in one click afterwards.
  */
+const SORTS = [
+  { key: 'name', label: 'Name' },
+  { key: 'recent', label: 'Recently touched' },
+  { key: 'deadline', label: 'Deadline' },
+  { key: 'mode', label: 'Mode' },
+]
+const STATUSES = [
+  { key: '', label: 'Live' },
+  { key: 'active', label: 'Active' },
+  { key: 'shipped', label: 'Shipped' },
+  { key: 'archived', label: 'Archived' },
+]
+
 export function Projects() {
-  const [projects, setProjects] = useState(null)
+  const [page, setPage] = useState(null)
   const [modes, setModes] = useState([])
   const [people, setPeople] = useState([])
   const [creating, setCreating] = useState(false)
   const [open, setOpen] = useState(null)
   const [addingTo, setAddingTo] = useState(null)
 
-  const load = async () => {
-    const [p, m, u] = await Promise.all([api.projects(), api.projectModes(), api.people()])
-    setProjects(p)
-    setModes(m)
-    setPeople(u.filter((x) => x.role === 'dev'))
-    if (open) setOpen(p.find((x) => x._id === open._id) || null)
-  }
-  useEffect(() => { load() }, [])
+  const [q, setQ] = useState('')
+  const [query, setQuery] = useState('')
+  const [sort, setSort] = useState('name')
+  const [status, setStatus] = useState('')
+  const [pageNo, setPageNo] = useState(1)
 
-  if (!projects) return <Spinner />
+  // let him finish typing before asking the server
+  useEffect(() => {
+    const t = setTimeout(() => { setQuery(q); setPageNo(1) }, 260)
+    return () => clearTimeout(t)
+  }, [q])
+
+  const load = async () => {
+    const params = { page: String(pageNo), perPage: '12', sort }
+    if (query) params.q = query
+    if (status) params.status = status
+    const [res, m, u] = await Promise.all([api.projectsPage(params), api.projectModes(), api.people()])
+    setPage(res)
+    setModes(m)
+    setPeople(u.filter((x) => x.role !== 'lead'))
+    if (open) setOpen(res.items.find((x) => x._id === open._id) || null)
+  }
+  useEffect(() => { load() }, [pageNo, sort, status, query])
+
+  const projects = page?.items ?? []
+
+  if (!page) return <Spinner />
 
   return (
     <>
       <div className="page-head">
         <div>
           <h1>Projects</h1>
-          <div className="sub">{projects.length} active · mode decides how much of a week each one costs</div>
+          <div className="sub">
+            {page.total} {status ? STATUSES.find((x) => x.key === status)?.label.toLowerCase() : 'live'}
+            {query ? ` matching “${query}”` : ''} · mode decides how much of a week each one costs
+          </div>
         </div>
         <button className="btn primary" onClick={() => setCreating(true)}><Icon.plus size={15} /> New project</button>
       </div>
 
+      <div className="proj-bar">
+        <span className="proj-search">
+          <Icon.spark size={15} />
+          <input
+            type="text" value={q} placeholder="Search projects or clients…"
+            onChange={(e) => setQ(e.target.value)}
+          />
+          {q && <button className="proj-clear" onClick={() => setQ('')}><Icon.x size={13} /></button>}
+        </span>
+
+        <select value={sort} onChange={(e) => { setSort(e.target.value); setPageNo(1) }}>
+          {SORTS.map((s2) => <option key={s2.key} value={s2.key}>Sort: {s2.label}</option>)}
+        </select>
+
+        <span className="seg">
+          {STATUSES.map((s2) => (
+            <button key={s2.key} className={status === s2.key ? 'on' : ''}
+              onClick={() => { setStatus(s2.key); setPageNo(1) }}>
+              {s2.label}
+              {page.counts?.[s2.key] ? <span className="dim"> {page.counts[s2.key]}</span> : null}
+            </button>
+          ))}
+        </span>
+      </div>
+
       {projects.length === 0 ? (
         <div className="panel">
-          <EmptyArt kind="projects" action={<button className="btn primary" onClick={() => setCreating(true)}><Icon.plus size={15} /> Create a project</button>}>
-            No projects yet. Create one, set its mode, then put people on it — the mode
-            decides how much of their week it actually costs.
+          <EmptyArt
+            kind="projects"
+            action={query
+              ? <button className="btn" onClick={() => setQ('')}>Clear the search</button>
+              : <button className="btn primary" onClick={() => setCreating(true)}><Icon.plus size={15} /> Create a project</button>}
+          >
+            {query
+              ? `Nothing matches “${query}”.`
+              : 'No projects yet. Create one, set its mode, then put people on it — the mode decides how much of their week it actually costs.'}
           </EmptyArt>
         </div>
       ) : (
@@ -60,9 +124,16 @@ export function Projects() {
                       <div className="dim" style={{ fontSize: 12 }}>{p.client || 'internal'}</div>
                     </div>
                   </div>
-                  <Tag tone={p.mode === 'development' ? 'violet' : p.mode === 'support' ? 'green' : ''}>
-                    {mode?.label || p.mode}
-                  </Tag>
+                  <div className="inline" style={{ gap: 6 }}>
+                    {p.status !== 'active' && (
+                      <Tag tone={p.status === 'shipped' ? 'green' : ''}>
+                        {p.status === 'shipped' ? 'Shipped' : p.status}
+                      </Tag>
+                    )}
+                    <Tag tone={p.mode === 'development' ? 'violet' : p.mode === 'support' ? 'green' : ''}>
+                      {mode?.label || p.mode}
+                    </Tag>
+                  </div>
                 </div>
 
                 <div className="row-between">
@@ -103,6 +174,18 @@ export function Projects() {
             )
           })}
         </div>
+      )}
+
+      {page.pages > 1 && (
+        <nav className="pager">
+          <button className="btn sm" disabled={pageNo <= 1} onClick={() => setPageNo((n) => n - 1)}>
+            <Icon.back size={14} /> Back
+          </button>
+          <span className="pager-n">Page {page.page} of {page.pages}</span>
+          <button className="btn sm" disabled={pageNo >= page.pages} onClick={() => setPageNo((n) => n + 1)}>
+            Next <Icon.arrow size={14} />
+          </button>
+        </nav>
       )}
 
       {creating && <NewProject modes={modes} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); load() }} />}
@@ -176,6 +259,27 @@ function ProjectDetail({ project, modes, people, onClose, onChanged, onAddTask }
   const confirm = useConfirm()
   const [busy, setBusy] = useState(null)
 
+  const endProject = async () => {
+    const impact = await api.projectImpact(project._id).catch(() => ({ open: 0 }))
+    const ok = await confirm({
+      title: `Mark ${project.name} as shipped?`,
+      body: impact.open
+        ? `${impact.open} task${impact.open === 1 ? '' : 's'} still open on it.`
+        : 'Everything on it is done.',
+      danger: 'Mark it shipped',
+      tone: 'warm',
+      consequences: [
+        { text: 'It leaves the day board and the load calculation', kept: false },
+        { text: 'Every task, score and delivery on it is kept', kept: true },
+        { text: 'You can reopen it from the Shipped tab', kept: true },
+      ],
+      onConfirm: async () => { await api.endProject(project._id); onChanged(); onClose() },
+    })
+    if (ok) onClose()
+  }
+
+  const reopen = async () => { await api.restoreProject(project._id); onChanged(); onClose() }
+
   const removeProject = async () => {
     const impact = await api.projectImpact(project._id).catch(() => ({ tasks: 0, open: 0 }))
     const ok = await confirm({
@@ -219,6 +323,11 @@ function ProjectDetail({ project, modes, people, onClose, onChanged, onAddTask }
           <button className="btn danger" onClick={removeProject}>
             <Icon.trash size={14} /> Delete
           </button>
+          {project.status === 'active' ? (
+            <button className="btn" onClick={endProject}><Icon.check size={14} /> End project</button>
+          ) : (
+            <button className="btn" onClick={reopen}><Icon.undo size={14} /> Reopen</button>
+          )}
           <button className="btn" onClick={() => onAddTask(project._id)}>
             <Icon.plus size={14} /> Add a task
           </button>
