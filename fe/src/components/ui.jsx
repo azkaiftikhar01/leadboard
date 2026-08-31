@@ -206,3 +206,20 @@ export const Spark = ({ values = [], hotLast = true }) => {
     </div>
   )
 }
+
+
+/**
+ * The brand lockup: the pixel mark, then the name in the app's own face.
+ *
+ * The name is live text rather than part of the artwork - it stays sharp at any
+ * size, respects the theme, and means the wordmark does not have to be
+ * regenerated to change a colour.
+ */
+export const Brand = ({ size = 26, name = true, className = '' }) => (
+  <span className={`brand-lockup ${className}`}>
+    {/* the mark is 7 cells wide but only 5 tall, so matching its WIDTH to the
+        cap height leaves it looking like a footnote next to the name */}
+    <Mark size={size * 1.85} />
+    {name && <b style={{ fontSize: size }}>LeadBoard</b>}
+  </span>
+)

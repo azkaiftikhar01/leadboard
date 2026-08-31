@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api } from '../lib/api.js'
-import { Icon } from '../components/ui.jsx'
+import { Brand, Icon } from '../components/ui.jsx'
 
 /**
  * The gate.
@@ -35,7 +35,7 @@ export function Lock({ onIn }) {
       <div className="aura" aria-hidden="true"><b /><b /><b /></div>
 
       <form className={`lock-card ${state}`} onSubmit={go}>
-        <img src="/logo-wordmark.svg" alt="LeadBoard" className="lock-logo" />
+        <Brand size={30} className="lock-logo" />
 
         <p className="lock-sub">
           {state === 'in'

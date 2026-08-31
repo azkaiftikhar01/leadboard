@@ -43,38 +43,19 @@ export const Icon = {
   spark:    (p) => <S {...p}><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8" /></S>,
 }
 
-/** The LeadBoard mark: pixel brackets and a tick, generated from the same grid
- *  as the favicon so the two can never drift apart. */
+/** The LeadBoard mark: a tick in seven rounded blocks, generated from the same
+ *  grid as the favicon by fe/scripts/logo.py so the two cannot drift apart. */
 export const Mark = ({ size = 32 }) => (
-  <svg width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges"
-       style={{ flex: 'none' }} aria-hidden="true">
-    <rect x="1" y="1" width="1" height="1" fill="#F46A2B" />
-    <rect x="2" y="1" width="1" height="1" fill="#F16636" />
-    <rect x="9" y="1" width="1" height="1" fill="#DF487E" />
-    <rect x="10" y="1" width="1" height="1" fill="#D44581" />
-    <rect x="1" y="2" width="1" height="1" fill="#F16636" />
-    <rect x="9" y="2" width="1" height="1" fill="#D44581" />
-    <rect x="10" y="2" width="1" height="1" fill="#C94384" />
-    <rect x="8" y="3" width="1" height="1" fill="#D44581" />
-    <rect x="9" y="3" width="1" height="1" fill="#C94384" />
-    <rect x="7" y="4" width="1" height="1" fill="#D44581" />
-    <rect x="8" y="4" width="1" height="1" fill="#C94384" />
-    <rect x="2" y="5" width="1" height="1" fill="#E75560" />
-    <rect x="6" y="5" width="1" height="1" fill="#D44581" />
-    <rect x="7" y="5" width="1" height="1" fill="#C94384" />
-    <rect x="2" y="6" width="1" height="1" fill="#E5506A" />
-    <rect x="3" y="6" width="1" height="1" fill="#E24C75" />
-    <rect x="5" y="6" width="1" height="1" fill="#D44581" />
-    <rect x="6" y="6" width="1" height="1" fill="#C94384" />
-    <rect x="3" y="7" width="1" height="1" fill="#DF487E" />
-    <rect x="4" y="7" width="1" height="1" fill="#D44581" />
-    <rect x="5" y="7" width="1" height="1" fill="#C94384" />
-    <rect x="4" y="8" width="1" height="1" fill="#C94384" />
-    <rect x="1" y="9" width="1" height="1" fill="#DF487E" />
-    <rect x="10" y="9" width="1" height="1" fill="#7C3296" />
-    <rect x="1" y="10" width="1" height="1" fill="#D44581" />
-    <rect x="2" y="10" width="1" height="1" fill="#C94384" />
-    <rect x="9" y="10" width="1" height="1" fill="#7C3296" />
-    <rect x="10" y="10" width="1" height="1" fill="#713099" />
+  <svg
+    width={size} height={size * 5 / 7} viewBox="0 0 70 50"
+    style={{ flex: 'none', overflow: 'visible' }} aria-hidden="true"
+  >
+    <rect x="0.95" y="20.95" width="8.1" height="8.1" rx="2.4" fill="#F97316" />
+    <rect x="10.95" y="30.95" width="8.1" height="8.1" rx="2.4" fill="#F0633D" />
+    <rect x="20.95" y="40.95" width="8.1" height="8.1" rx="2.4" fill="#E65363" />
+    <rect x="30.95" y="30.95" width="8.1" height="8.1" rx="2.4" fill="#D44581" />
+    <rect x="40.95" y="20.95" width="8.1" height="8.1" rx="2.4" fill="#AC3D8B" />
+    <rect x="50.95" y="10.95" width="8.1" height="8.1" rx="2.4" fill="#833494" />
+    <rect x="60.95" y="0.95" width="8.1" height="8.1" rx="2.4" fill="#5B2B9E" />
   </svg>
 )

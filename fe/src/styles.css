@@ -648,7 +648,7 @@ input::placeholder { color: var(--text-3); }
   .tracks { grid-template-columns: 1fr; }
   .main { padding: 70px 18px 0; }
   .brand-corner { top: 16px; left: 16px; }
-  .brand-corner img { width: 108px; }
+
   .dock { gap: 2px; padding: 7px; }
   .dock-btn { width: 42px; height: 42px; }
 }
@@ -665,9 +665,9 @@ input::placeholder { color: var(--text-3); }
   display: block; line-height: 0;
   transition: transform .18s var(--ease);
 }
-.brand-corner img { width: 118px; height: auto; display: block; }
+.brand-corner { line-height: 1; }
 .brand-corner:hover { transform: translateY(-1px) scale(1.02); }
-:root[data-theme='dark'] .brand-corner img { filter: brightness(1.08) saturate(1.04); }
+
 
 /* ============================================================
    First run
@@ -967,8 +967,7 @@ input::placeholder { color: var(--text-3); }
   58% { transform: translateX(-4px) } 78% { transform: translateX(2px) }
 }
 
-.lock-logo { width: 210px; height: auto; display: block; }
-:root[data-theme='dark'] .lock-logo { filter: brightness(1.08) saturate(1.04); }
+.lock-logo { display: inline-flex; }
 
 .lock-sub {
   text-align: center; color: var(--text-2); font-size: 13.5px;
@@ -1018,7 +1017,7 @@ input::placeholder { color: var(--text-3); }
 
   /* the brand becomes the mark alone - the wordmark eats half the width */
   .brand-corner { top: 12px; left: 14px; }
-  .brand-corner img { width: 92px; }
+
 
   .main { padding: 58px 14px 0; }
   .shell { padding-bottom: calc(var(--dock-h) + 78px + env(safe-area-inset-bottom, 0px)); }
@@ -1107,7 +1106,7 @@ input::placeholder { color: var(--text-3); }
 
   /* ---------- lock ---------- */
   .lock-card { max-width: 100%; padding: 30px 24px 26px; }
-  .lock-logo { width: 178px; }
+
   .lock-sub { min-height: 40px; margin-bottom: 18px; }
 
   /* ---------- capture sheet ---------- */
@@ -1138,7 +1137,7 @@ input::placeholder { color: var(--text-3); }
 @media (max-width: 380px) {
   .dock-btn { width: 40px; height: 40px; }
   .dock-add { width: 50px; height: 50px; }
-  .brand-corner img { width: 82px; }
+
   .main { padding: 54px 11px 0; }
   h1, .start-title { font-size: 22px; }
 }
@@ -1563,7 +1562,7 @@ input::placeholder { color: var(--text-3); }
   border-radius: var(--r-lg); box-shadow: var(--sh-2); padding: 28px;
   animation: float-in .45s var(--ease) both;
 }
-.pub-logo { width: 132px; height: auto; display: block; margin-bottom: 16px; }
+.pub-logo { margin-bottom: 16px; }
 .pub-head h1 { font-size: 25px; letter-spacing: -.025em; }
 .pub-head p { color: var(--text-2); font-size: 14px; margin-top: 7px; }
 
@@ -1762,3 +1761,10 @@ input::placeholder { color: var(--text-3); }
 }
 .res-kinds button:hover { color: var(--text); }
 .res-kinds button.on { background: var(--g-primary); color: #fff; border-color: transparent; }
+
+.brand-lockup {
+  display: inline-flex; align-items: center; gap: 10px; line-height: 1;
+}
+.brand-lockup b {
+  font-weight: 700; letter-spacing: -.03em; color: var(--text);
+}

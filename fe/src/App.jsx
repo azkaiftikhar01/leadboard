@@ -14,7 +14,7 @@ import { Mic } from './components/Mic.jsx'
 import { Dock } from './components/Dock.jsx'
 import { Palette } from './components/Palette.jsx'
 import { CaptureChips } from './components/CaptureChips.jsx'
-import { Icon, Aura } from './components/ui.jsx'
+import { Icon, Aura, Brand } from './components/ui.jsx'
 import { GiveAward } from './components/GiveAward.jsx'
 import { ConfirmProvider } from './components/Confirm.jsx'
 import { QuickTask } from './components/QuickTask.jsx'
@@ -159,7 +159,7 @@ export default function App() {
     <div className="shell">
       <Aura />
       <a href="#/" className="brand-corner" aria-label="LeadBoard — Today">
-        <img src="/logo-wordmark.svg" alt="LeadBoard" />
+        <Brand size={19} />
       </a>
       <main className="main">
         {firstRun ? <Start counts={counts} onGo={go} /> : <View />}
