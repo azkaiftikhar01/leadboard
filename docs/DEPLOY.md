@@ -36,6 +36,7 @@ Set these in **Project → Settings → Environment Variables**:
 | `MONGODB_URI` | **yes** | Your Atlas connection string, with `/leadboard` before the `?` |
 | `APP_PASSWORD` | **yes in production** | The shared passphrase for the board |
 | `AUTH_SECRET` | recommended | Any long random string; signs the session cookie |
+| `RESOURCE_KEY` | only for credentials | Encrypts stored project credentials. **Back it up** — lose it and existing secrets are unrecoverable |
 | `PARSER` | no | `heuristic` (default, free) · `ollama` · `claude` |
 | `STT_PROVIDER` | no | `client` (default, free) · `whisper` · `deepgram` |
 
@@ -80,3 +81,25 @@ cd fe && npm run dev     # :5180
 ```
 
 With no `APP_PASSWORD` set locally, the gate stays open.
+
+## Stored credentials
+
+Project resources can hold a login. The password is sealed with AES-256-GCM
+before it is written, using a key derived from `RESOURCE_KEY` (falling back to
+`AUTH_SECRET`). Each secret gets its own IV, and the auth tag is stored with it,
+so a tampered row fails to decrypt rather than returning plausible rubbish.
+
+Three properties worth stating plainly:
+
+- **Secrets are never in a list response.** A row only reports whether one
+  exists. Revealing fetches it on its own, one at a time, and the reveal is
+  timestamped.
+- **With no key set, the API refuses to store a secret** rather than writing it
+  in plaintext. A credential store that silently is not one is worse than none.
+- **Changing the key does not migrate anything.** Existing secrets stop
+  decrypting and say so. Back the key up somewhere that is not this repository.
+
+What this protects against: a leaked database, a stolen backup, an Atlas
+snapshot in the wrong hands. What it does not: anyone holding the board's
+passphrase — the whole point is that they can read these. It is encryption at
+rest, not a vault with its own lock.

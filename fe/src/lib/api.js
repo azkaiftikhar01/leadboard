@@ -60,6 +60,14 @@ export const api = {
   giveAward: (b) => req('/awards', { method: 'POST', body: JSON.stringify(b) }),
   undoAward: (id) => req(`/awards/${id}`, { method: 'DELETE' }),
 
+  // project resources
+  resourceKinds: () => req('/resources/kinds'),
+  resources: (projectId) => req(`/resources?project=${projectId}`),
+  addResource: (b) => req('/resources', { method: 'POST', body: JSON.stringify(b) }),
+  patchResource: (id, b) => req(`/resources/${id}`, { method: 'PATCH', body: JSON.stringify(b) }),
+  revealResource: (id) => req(`/resources/${id}/reveal`, { method: 'POST', body: JSON.stringify({}) }),
+  deleteResource: (id) => req(`/resources/${id}`, { method: 'DELETE' }),
+
   // focus
   focusState: () => req('/focus'),
   startFocus: (b) => req('/focus', { method: 'POST', body: JSON.stringify(b) }),

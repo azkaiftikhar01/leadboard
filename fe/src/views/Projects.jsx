@@ -3,6 +3,7 @@ import { api } from '../lib/api.js'
 import { Avatar, Tag, Empty, EmptyArt, Modal, Field, Spinner, Icon } from '../components/ui.jsx'
 import { QuickTask } from '../components/QuickTask.jsx'
 import { useConfirm } from '../components/Confirm.jsx'
+import { Resources } from '../components/Resources.jsx'
 
 /**
  * Mode is the important control here. It decides how much of a dev's week the
@@ -29,6 +30,7 @@ export function Projects() {
   const [creating, setCreating] = useState(false)
   const [open, setOpen] = useState(null)
   const [addingTo, setAddingTo] = useState(null)
+  const [resourcesFor, setResourcesFor] = useState(null)
 
   const [q, setQ] = useState('')
   const [query, setQuery] = useState('')
@@ -165,6 +167,12 @@ export function Projects() {
                   </button>
                   <button
                     className="btn ghost sm"
+                    onClick={(e) => { e.stopPropagation(); setResourcesFor(p) }}
+                  >
+                    Resources
+                  </button>
+                  <button
+                    className="btn ghost sm"
                     onClick={(e) => { e.stopPropagation(); setOpen(p) }}
                   >
                     People & mode
@@ -190,6 +198,7 @@ export function Projects() {
 
       {creating && <NewProject modes={modes} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); load() }} />}
       {addingTo && <QuickTask project={addingTo} onClose={() => setAddingTo(null)} onDone={load} />}
+      {resourcesFor && <Resources project={resourcesFor} onClose={() => setResourcesFor(null)} />}
       {open && (
         <ProjectDetail
           project={open} modes={modes} people={people}
