@@ -6,6 +6,53 @@ import { transitionTask } from '../lib/apply.js'
 
 const r = Router()
 
+/**
+ * Tasks that have come due and have not been announced yet.
+ *
+ * The client polls this rather than computing it, so the same deadline does not
+ * fire twice on two devices, and so a browser that was closed at the moment
+ * still hears about it when it comes back.
+ */
+r.get('/due', async (_req, res) => {
+  const now = new Date()
+  const tasks = await Task.find({
+    state: { $nin: ['done', 'dropped'] },
+    dueDate: { $ne: null, $lte: now },
+    dueNotifiedAt: null,
+  })
+    .populate('assignee', 'name')
+    .populate('project', 'name color')
+    .sort('dueDate')
+    .limit(10)
+    .lean({ virtuals: true })
+
+  // a day-only deadline is not late until the day is over
+  const ripe = tasks.filter((t) => {
+    if (t.dueHasTime) return true
+    const end = new Date(t.dueDate)
+    end.setHours(23, 59, 59, 999)
+    return now > end
+  })
+  res.json(ripe)
+})
+
+/** Acknowledged — do not raise this one again. */
+r.post('/:id/notified', async (req, res) => {
+  res.json(await Task.findByIdAndUpdate(req.params.id, { dueNotifiedAt: new Date() }, { new: true }))
+})
+
+/** Push a deadline out without leaving the alert. */
+r.post('/:id/snooze', async (req, res) => {
+  const mins = Math.max(1, Number(req.body?.minutes) || 10)
+  const task = await Task.findById(req.params.id)
+  if (!task) return res.status(404).json({ error: 'not found' })
+  task.dueDate = new Date(Date.now() + mins * 60_000)
+  task.dueHasTime = true
+  task.dueNotifiedAt = null
+  await task.save()
+  res.json(task)
+})
+
 r.get('/tracks', (_req, res) =>
   res.json(Object.entries(TASK_TRACKS).map(([key, v]) => ({ key, ...v })))
 )
@@ -46,6 +93,7 @@ r.get('/', async (req, res) => {
 r.post('/', async (req, res) => {
   const task = await Task.create({
     ...req.body,
+    dueHasTime: Boolean(req.body.dueHasTime),
     history: [{ from: null, to: req.body.state || 'assigned', by: req.body.actor }],
   })
   res.status(201).json(task)

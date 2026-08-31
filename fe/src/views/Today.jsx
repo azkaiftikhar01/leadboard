@@ -112,7 +112,7 @@ export function Today() {
 }
 
 function TaskRow({ task, track, onTick, onDelete }) {
-  const due = dueLabel(task.dueDate)
+  const due = dueLabel(task.dueDate, task.dueHasTime)
   return (
     <div className="task">
       <button className="tick" onClick={onTick} title="Mark done"><Icon.check size={13} /></button>

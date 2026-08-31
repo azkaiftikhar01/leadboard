@@ -21,6 +21,8 @@ import { QuickTask } from './components/QuickTask.jsx'
 import { Notes } from './components/Notes.jsx'
 import { Settings } from './components/Settings.jsx'
 import { Focus } from './components/Focus.jsx'
+import { DueAlert, EdgeGlow } from './components/DueAlert.jsx'
+import { useDeadlines } from './lib/useDeadlines.js'
 import { useTheme } from './lib/useTheme.js'
 import { useCapture } from './lib/useCapture.js'
 import { api } from './lib/api.js'
@@ -68,6 +70,7 @@ export default function App() {
     api.authState().then((a) => setAuthed(a.authed)).catch(() => setAuthed(false))
   }, [])
   const cap = useCapture({ source: 'window' })
+  const deadlines = useDeadlines({ enabled: authed === true })
 
   /** Back to the lock screen, and back to Today for whoever signs in next -
    *  landing a new session mid-way through someone else's page is disorienting. */
@@ -220,6 +223,17 @@ export default function App() {
       {adding && <QuickTask onClose={() => setAdding(false)} onDone={pull} />}
       <Notes open={notesOpen} onClose={() => setNotesOpen(false)} />
       <Focus open={focusOpen} onClose={() => setFocusOpen(false)} onFinished={pull} />
+
+      <EdgeGlow on={deadlines.glow} />
+      <DueAlert
+        due={deadlines.due}
+        permission={deadlines.permission}
+        onAsk={deadlines.ask}
+        onSnooze={(t, m) => { deadlines.snooze(t, m); pull() }}
+        onComplete={(t) => { deadlines.complete(t); pull() }}
+        onDismiss={deadlines.dismiss}
+        onDismissAll={deadlines.dismissAll}
+      />
       {settingsOpen && (
         <Settings onClose={() => setSettingsOpen(false)} onSignedOut={signOut} />
       )}

@@ -67,7 +67,7 @@ export function Review() {
       ) : (
         <div className="stack">
           {queue.map((t) => {
-            const due = dueLabel(t.dueDate)
+            const due = dueLabel(t.dueDate, t.dueHasTime)
             return (
               <div className="card" key={t._id}>
                 <div className="row-between">

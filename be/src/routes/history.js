@@ -20,9 +20,10 @@ const startOf = (t) => t.startedAt || t.assignedAt || t.createdAt
 /** A due date names a day, and a day is not over until it ends. Comparing
  *  against the stored midnight marks anything finished after 00:00 on the due
  *  day as late, which made every same-day task read as missed. */
-const endOfDueDay = (d) => {
-  const e = new Date(d)
-  e.setHours(23, 59, 59, 999)
+const endOfDueDay = (t) => {
+  const e = new Date(t.dueDate)
+  // a deadline with a time on it means that time, not midnight after it
+  if (!t.dueHasTime) e.setHours(23, 59, 59, 999)
   return e
 }
 const cycleDays = (t) => {
@@ -92,7 +93,7 @@ r.get('/', async (req, res) => {
       reopenCount: t.reopenCount,
       dueDate: t.dueDate,
       // late is measured against what was promised, not against how long it took
-      late: t.dueDate ? t.doneAt > endOfDueDay(t.dueDate) : null,
+      late: t.dueDate ? t.doneAt > endOfDueDay(t) : null,
     })),
     ...rework.map((e) => ({
       type: 'rework',
@@ -134,7 +135,7 @@ r.get('/', async (req, res) => {
     byPerson[id].completed += 1
     const c = cycleDays(t)
     if (c !== null) byPerson[id].cycles.push(c)
-    if (t.dueDate && t.doneAt > endOfDueDay(t.dueDate)) byPerson[id].late += 1
+    if (t.dueDate && t.doneAt > endOfDueDay(t)) byPerson[id].late += 1
   }
 
   res.json({
@@ -146,7 +147,7 @@ r.get('/', async (req, res) => {
       fastest: cycles.length ? Math.min(...cycles) : null,
       slowest: cycles.length ? Math.max(...cycles) : null,
       onTime: withDue.length
-        ? withDue.filter((t) => t.doneAt <= endOfDueDay(t.dueDate)).length / withDue.length
+        ? withDue.filter((t) => t.doneAt <= endOfDueDay(t)).length / withDue.length
         : null,
       reworked: done.filter((t) => t.reopenCount > 0).length,
       byPerson: Object.values(byPerson)

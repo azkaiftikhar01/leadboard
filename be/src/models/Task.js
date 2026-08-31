@@ -38,6 +38,11 @@ const taskSchema = new mongoose.Schema(
     priority: { type: String, enum: ['low', 'normal', 'high', 'urgent'], default: 'normal' },
     estimateHours: Number,
     dueDate: Date,
+    /** whether the due date names a moment or just a day. A task due "Friday"
+     *  is not late at 00:01 on Friday; one due at 15:00 is late at 15:01. */
+    dueHasTime: { type: Boolean, default: false },
+    /** set once we have told him it is due, so a reload does not re-alarm */
+    dueNotifiedAt: Date,
     assignedAt: { type: Date, default: Date.now },
     startedAt: Date,
     doneAt: Date,

@@ -20,6 +20,7 @@ export function QuickTask({ project: fixedProject, onClose, onDone }) {
   const [assignee, setAssignee] = useState('')
   const [waitingOn, setWaitingOn] = useState('')
   const [due, setDue] = useState('')
+  const [dueTime, setDueTime] = useState('')
   const [opts, setOpts] = useState({ projects: [], people: [] })
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
@@ -36,11 +37,14 @@ export function QuickTask({ project: fixedProject, onClose, onDone }) {
     setBusy(true)
     setErr(null)
     try {
+      // a date alone means the whole day; a date plus a time means that moment
+      const dueDate = due ? (dueTime ? new Date(`${due}T${dueTime}`).toISOString() : due) : undefined
       await api.addTask({
         title: title.trim(), project, track,
         assignee: track === 'team' ? assignee || undefined : undefined,
         waitingOnLabel: track !== 'team' ? waitingOn : '',
-        dueDate: due || undefined,
+        dueDate,
+        dueHasTime: Boolean(due && dueTime),
       })
       onDone?.()
       onClose()
@@ -126,7 +130,27 @@ export function QuickTask({ project: fixedProject, onClose, onDone }) {
         )}
         <div className="field" style={{ flex: 1 }}>
           <label>Due</label>
-          <input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+          <div className="due-inputs">
+            <input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+            <input type="time" value={dueTime} disabled={!due}
+              onChange={(e) => setDueTime(e.target.value)} />
+          </div>
+          <div className="inline" style={{ gap: 5, marginTop: 6 }}>
+            {[5, 30, 120].map((m) => (
+              <button key={m} type="button" className="btn ghost sm" onClick={() => {
+                const d = new Date(Date.now() + m * 60_000)
+                setDue(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
+                setDueTime(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`)
+              }}>
+                +{m < 60 ? `${m}m` : `${m / 60}h`}
+              </button>
+            ))}
+            {(due || dueTime) && (
+              <button type="button" className="btn ghost sm" onClick={() => { setDue(''); setDueTime('') }}>
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </Modal>

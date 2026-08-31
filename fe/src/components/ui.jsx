@@ -73,8 +73,15 @@ export function LoadMeter({ assignments = [], capacity = 100 }) {
   )
 }
 
-export const dueLabel = (d) => {
+export const dueLabel = (d, hasTime = false) => {
   if (!d) return null
+  if (hasTime) {
+    const mins = Math.round((new Date(d) - Date.now()) / 60_000)
+    if (mins < -60) return { text: `${Math.round(-mins / 60)}h late`, tone: 'red' }
+    if (mins < 0) return { text: `${-mins}m late`, tone: 'red' }
+    if (mins < 60) return { text: `in ${mins}m`, tone: 'red' }
+    if (mins < 60 * 8) return { text: `in ${Math.round(mins / 60)}h`, tone: 'amber' }
+  }
   const days = Math.round((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86_400_000)
   if (days < 0) return { text: `${-days}d late`, tone: 'red' }
   if (days === 0) return { text: 'today', tone: 'red' }
