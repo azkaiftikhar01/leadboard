@@ -25,7 +25,10 @@ const band = (pct) => BANDS.find((b) => pct <= b.max)
 
 export async function teamLoad() {
   const [people, projects, openTasks] = await Promise.all([
-    User.find({ active: true, role: { $in: ['dev', 'manager'] } }).sort('name').lean(),
+    // Everyone active, whatever their role. Filtering by role meant that giving
+    // somebody a board - which promotes them to 'second' - quietly removed them
+    // from the team, the load board and the scoreboard.
+    User.find({ active: true }).sort('name').lean(),
     Project.find({ status: { $in: ['active', 'paused'] } }).lean(),
     Task.find({ state: { $nin: ['done', 'dropped'] }, track: 'team' }).select('assignee project dueDate').lean(),
   ])

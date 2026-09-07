@@ -37,11 +37,11 @@ export function Team() {
         <div>
           <h1>Team</h1>
           <div className="sub">
-            {rows.length} {rows.length === 1 ? 'dev' : 'devs'}
+            {rows.length} {rows.length === 1 ? 'person' : 'people'}
             {free.length > 0 && <> · <span style={{ color: 'var(--good)' }}>{free.length} with room right now</span></>}
           </div>
         </div>
-        <button className="btn primary" onClick={() => setAdding(true)}><Icon.plus size={15} /> Add dev</button>
+        <button className="btn primary" onClick={() => setAdding(true)}><Icon.plus size={15} /> Add someone</button>
       </div>
 
       {rows.length === 0 ? (
@@ -60,7 +60,11 @@ export function Team() {
                   <Avatar user={r.user} size={38} />
                   <div>
                     <div style={{ fontWeight: 640, fontSize: 15 }}>{r.user.name}</div>
-                    <div className="dim" style={{ fontSize: 12 }}>{r.user.title || 'Developer'}</div>
+                    <div className="dim inline" style={{ fontSize: 12, gap: 6 }}>
+                      <span>{r.user.title || 'Developer'}</span>
+                      {r.user.role === 'lead' && <Tag tone="amber">Lead</Tag>}
+                      {r.user.role === 'second' && <Tag tone="blue">Second</Tag>}
+                    </div>
                   </div>
                 </div>
                 <Dial pct={r.loadPercent} size={50} />

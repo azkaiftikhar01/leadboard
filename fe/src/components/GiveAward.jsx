@@ -17,7 +17,7 @@ export function GiveAward({ preset, onClose, onDone }) {
 
   useEffect(() => {
     Promise.all([api.people(), api.awardTypes()]).then(([u, t]) => {
-      setPeople(u.filter((p) => p.role === 'dev'))
+      setPeople(u.filter((p) => p.role !== 'lead'))
       setTypes(t)
     })
   }, [])
