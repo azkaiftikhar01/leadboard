@@ -26,6 +26,12 @@ export const api = {
 
   today: () => req('/today'),
 
+  // boards
+  boards: () => req('/boards'),
+  enableBoard: (userId, code) => req(`/boards/${userId}/enable`, { method: 'POST', body: JSON.stringify({ code }) }),
+  disableBoard: (userId) => req(`/boards/${userId}/disable`, { method: 'POST', body: JSON.stringify({}) }),
+  handTask: (id, owner) => req(`/tasks/${id}/hand`, { method: 'POST', body: JSON.stringify({ owner }) }),
+
   // team
   people: () => req('/people'),
   teamLoad: () => req('/people/load/all'),

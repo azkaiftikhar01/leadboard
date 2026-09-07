@@ -90,6 +90,7 @@ export default function App() {
         api.today(), api.reviewQueue(), api.people(), api.projects(),
       ])
       setCounts({
+        board: today.board ?? null,
         owed: today.badge.owed, inbox: today.inboxCount, review: review.length, streak: today.streak,
         people: people.filter((p) => p.role === 'dev').length,
         projects: projects.length,

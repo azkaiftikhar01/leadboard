@@ -5,7 +5,17 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     // aliases let the capture parser resolve "asad", "Asad K", "@asad" to one person
     aliases: [{ type: String, lowercase: true, trim: true }],
-    role: { type: String, enum: ['lead', 'dev', 'manager'], default: 'dev' },
+    /**
+     * lead    — runs the org, sees every board
+     * second  — second in command: runs their own board, below the lead
+     * manager / dev — no board of their own
+     */
+    role: { type: String, enum: ['lead', 'second', 'manager', 'dev'], default: 'dev' },
+    /** whether they have a board of their own to sign in to */
+    hasBoard: { type: Boolean, default: false },
+    /** their own sign-in code, hashed. Never returned by any endpoint. */
+    passSalt: { type: String, select: false },
+    passHash: { type: String, select: false },
     avatarColor: { type: String, default: '#6b7cff' },
     title: { type: String, default: '', trim: true },
     weeklyCapacityHours: { type: Number, default: 40 },

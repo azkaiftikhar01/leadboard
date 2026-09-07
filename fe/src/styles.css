@@ -1768,3 +1768,28 @@ input::placeholder { color: var(--text-3); }
 .brand-lockup b {
   font-weight: 700; letter-spacing: -.03em; color: var(--text);
 }
+
+/* ---------- board picker ---------- */
+.board-pick { display: flex; gap: 6px; flex-wrap: wrap; }
+.board-pick button {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: var(--r-pill);
+  font-size: 13px; font-weight: 620; color: var(--text-2);
+  background: var(--s-2); border: 1.5px solid transparent;
+  transition: all .14s var(--ease);
+}
+.board-pick button:hover { background: var(--s-3); color: var(--text); }
+.board-pick button.on {
+  background: var(--s-1); border-color: var(--c-orange); color: var(--text);
+  box-shadow: 0 3px 12px rgb(229 122 68 / .18);
+}
+.board-pick em {
+  font-style: normal; font-size: 11px; font-weight: 700;
+  background: var(--s-3); color: var(--text-3); padding: 1px 7px; border-radius: var(--r-pill);
+}
+
+.board-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 650; color: var(--c-primary);
+  background: var(--info-bg); padding: 2px 9px; border-radius: var(--r-pill);
+}

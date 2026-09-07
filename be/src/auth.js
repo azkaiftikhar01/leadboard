@@ -1,21 +1,23 @@
 import { Router } from 'express'
 import crypto from 'node:crypto'
 import Setting from './models/Setting.js'
+import User from './models/User.js'
 
 /**
- * A single shared passphrase, signed into a cookie.
+ * Sign-in, and which board you land on.
  *
- * Deliberately minimal - this is one lead's private board, not a multi-tenant
- * product. But it is not optional: the moment this has a public URL, an
- * unprotected deployment hands anyone who finds it a page ranking the team by
- * performance, with names attached.
+ * There is more than one board now: the lead has one, and anyone made second in
+ * command gets their own. So a code no longer just opens the door - it says who
+ * you are, and the session carries that through every request.
  *
- * The live passphrase is stored hashed in the database so it can be changed from
- * inside the app. APP_PASSWORD stays valid as a recovery key, because there is
- * no email on this account and no way to prove who you are - a forgotten
- * passphrase with no fallback is a permanently bricked board. That is a real
- * trade: anyone who can read the deployment config can get in. They can also
- * read the database directly, so it is not the weakest link.
+ * Three ways in, in order:
+ *   1. a board owner's own code (their board)
+ *   2. the shared passphrase        (the lead's board)
+ *   3. APP_PASSWORD                 (recovery, always accepted)
+ *
+ * The recovery key stays because there is no email on any of these accounts and
+ * no way to prove who you are. A forgotten code with no fallback is a board
+ * nobody can ever open again.
  */
 const COOKIE = 'lb_session'
 const KEY = 'passphrase'
@@ -23,49 +25,61 @@ const DAYS = 30
 
 const stored = async () => (await Setting.findOne({ key: KEY }).lean())?.value || null
 
-/**
- * The cookie secret folds in the current passphrase hash, so changing the
- * passphrase invalidates every session signed under the old one. Without that,
- * "everyone else is signed out" would be a claim the code did not honour.
- */
+const hash = (plain, salt) => crypto.scryptSync(plain, salt, 64).toString('hex')
+
+const same = (a, b) => {
+  const x = Buffer.from(String(a))
+  const y = Buffer.from(String(b))
+  return x.length === y.length && crypto.timingSafeEqual(x, y)
+}
+
 const secretFor = async () => {
   const rec = await stored()
   return `${process.env.AUTH_SECRET || process.env.APP_PASSWORD || 'dev-only'}|${rec?.hash ?? 'bootstrap'}`
 }
 
-const sign = async (exp) => {
-  const mac = crypto.createHmac('sha256', await secretFor()).update(String(exp)).digest('hex')
-  return `${exp}.${mac}`
+/** The session names the board, so switching passphrases switches board. */
+const sign = async (exp, uid) => {
+  const payload = `${exp}.${uid || ''}`
+  const mac = crypto.createHmac('sha256', await secretFor()).update(payload).digest('hex')
+  return `${payload}.${mac}`
 }
 
-const validCookie = async (token) => {
-  const [exp, mac] = String(token || '').split('.')
-  if (!exp || !mac || Number(exp) < Date.now()) return false
-  const expected = crypto.createHmac('sha256', await secretFor()).update(exp).digest('hex')
-  const a = Buffer.from(mac)
-  const b = Buffer.from(expected)
-  return a.length === b.length && crypto.timingSafeEqual(a, b)
-}
-
-const readCookie = (req) =>
-  Object.fromEntries(
+const readSession = async (req) => {
+  const raw = Object.fromEntries(
     (req.headers.cookie || '').split(';').map((c) => {
       const [k, ...v] = c.trim().split('=')
       return [k, v.join('=')]
     })
   )[COOKIE]
-
-/* ---------------- passphrase ---------------- */
-
-const hash = (plain, salt) => crypto.scryptSync(plain, salt, 64).toString('hex')
-
-const same = (a, b) => {
-  const x = Buffer.from(a)
-  const y = Buffer.from(b)
-  return x.length === y.length && crypto.timingSafeEqual(x, y)
+  const [exp, uid, mac] = String(raw || '').split('.')
+  if (!exp || !mac || Number(exp) < Date.now()) return null
+  const expected = crypto.createHmac('sha256', await secretFor()).update(`${exp}.${uid}`).digest('hex')
+  if (!same(mac, expected)) return null
+  return { uid: uid || null }
 }
 
-const store = async (plain) => {
+const setSession = async (res, uid) => {
+  const exp = Date.now() + DAYS * 86_400_000
+  res.setHeader(
+    'Set-Cookie',
+    `${COOKIE}=${await sign(exp, uid)}; Path=/; Max-Age=${DAYS * 86400}; HttpOnly; SameSite=Lax${
+      process.env.NODE_ENV === 'production' ? '; Secure' : ''
+    }`
+  )
+}
+
+/* ---------------- passphrase storage ---------------- */
+
+export const setBoardCode = async (userId, code) => {
+  const salt = crypto.randomBytes(16).toString('hex')
+  await User.findByIdAndUpdate(userId, { passSalt: salt, passHash: hash(code, salt), hasBoard: true })
+}
+
+export const clearBoardCode = async (userId) =>
+  User.findByIdAndUpdate(userId, { $unset: { passSalt: '', passHash: '' }, hasBoard: false })
+
+const storeShared = async (plain) => {
   const salt = crypto.randomBytes(16).toString('hex')
   await Setting.findOneAndUpdate(
     { key: KEY },
@@ -74,17 +88,28 @@ const store = async (plain) => {
   )
 }
 
-/** Their passphrase, or the recovery key from the deployment config. */
-const matches = async (plain) => {
-  if (!plain) return { ok: false, viaRecovery: false }
+/** Who does this code belong to? Returns the user, or null for the lead's board. */
+const resolve = async (plain) => {
+  if (!plain) return { ok: false }
+
+  const owners = await User.find({ hasBoard: true, active: true }).select('+passSalt +passHash').lean()
+  for (const u of owners) {
+    if (u.passSalt && u.passHash && same(hash(plain, u.passSalt), u.passHash)) {
+      return { ok: true, user: u }
+    }
+  }
+
   const rec = await stored()
-  if (rec && same(hash(plain, rec.salt), rec.hash)) return { ok: true, viaRecovery: false }
+  if (rec && same(hash(plain, rec.salt), rec.hash)) return { ok: true, user: null }
+
   const env = process.env.APP_PASSWORD || ''
-  if (env && same(plain, env)) return { ok: true, viaRecovery: Boolean(rec) }
-  return { ok: false, viaRecovery: false }
+  if (env && same(plain, env)) return { ok: true, user: null, viaRecovery: Boolean(rec) }
+
+  return { ok: false }
 }
 
-const gateOn = async () => Boolean(process.env.APP_PASSWORD || (await stored()))
+const gateOn = async () =>
+  Boolean(process.env.APP_PASSWORD || (await stored()) || (await User.exists({ hasBoard: true })))
 
 /* ---------------- middleware ---------------- */
 
@@ -93,59 +118,72 @@ export async function requireAuth(req, res, next) {
     if (process.env.NODE_ENV === 'production') {
       return res.status(500).json({ error: 'APP_PASSWORD is not set — refusing to serve team data unprotected' })
     }
+    req.board = { uid: null, isLead: true }
     return next()
   }
-  if (await validCookie(readCookie(req))) return next()
-  res.status(401).json({ error: 'unauthorized' })
-}
+  const session = await readSession(req)
+  if (!session) return res.status(401).json({ error: 'unauthorized' })
 
-const issue = async (res) => {
-  const exp = Date.now() + DAYS * 86_400_000
-  res.setHeader(
-    'Set-Cookie',
-    `${COOKIE}=${await sign(exp)}; Path=/; Max-Age=${DAYS * 86400}; HttpOnly; SameSite=Lax${
-      process.env.NODE_ENV === 'production' ? '; Secure' : ''
-    }`
-  )
+  // No uid means the shared passphrase, which is the lead's board. Resolve it
+  // to the lead account when there is one, so handed-off work can say who it
+  // came from rather than arriving anonymously.
+  const me = session.uid
+    ? await User.findById(session.uid).lean()
+    : await User.findOne({ role: 'lead', active: true }).lean()
+
+  req.board = {
+    // the lead's board is still keyed on null, so tasks written before boards
+    // existed stay where they are
+    uid: session.uid ? String(session.uid) : null,
+    me,
+    isLead: !session.uid || me?.role === 'lead',
+  }
+  next()
 }
 
 export const authRoutes = Router()
 
 authRoutes.get('/state', async (req, res) => {
   const on = await gateOn()
-  const rec = await stored()
+  const session = await readSession(req)
+  const me = session?.uid ? await User.findById(session.uid).lean() : null
   res.json({
     required: on,
-    authed: !on || (await validCookie(readCookie(req))),
-    // still on the deployment passphrase, so the UI can nudge him to set his own
-    usingBootstrap: !rec && Boolean(process.env.APP_PASSWORD),
-    // whether a recovery key exists at all, so the lock screen can say so honestly
+    authed: !on || Boolean(session),
+    usingBootstrap: !(await stored()) && Boolean(process.env.APP_PASSWORD),
     hasRecovery: Boolean(process.env.APP_PASSWORD),
+    board: session
+      ? { name: me?.name ?? 'Lead board', role: me?.role ?? 'lead', userId: me?._id ?? null }
+      : null,
   })
 })
 
 authRoutes.post('/login', async (req, res) => {
-  const { ok, viaRecovery } = await matches(String(req.body?.password || ''))
-  if (!ok) return res.status(401).json({ error: 'Wrong passphrase' })
-  await issue(res)
-  res.json({ ok: true, viaRecovery })
+  const r = await resolve(String(req.body?.password || ''))
+  if (!r.ok) return res.status(401).json({ error: 'Wrong passphrase' })
+  await setSession(res, r.user?._id ? String(r.user._id) : '')
+  res.json({
+    ok: true,
+    viaRecovery: Boolean(r.viaRecovery),
+    board: { name: r.user?.name ?? 'Lead board', role: r.user?.role ?? 'lead' },
+  })
 })
 
-/** Change it from inside the board. Requires the current one, or the recovery key. */
+/** Change your own code — the shared one if you are on the lead board, your own otherwise. */
 authRoutes.post('/change', async (req, res) => {
   const { current, next } = req.body || {}
   if (!next || String(next).length < 6) {
     return res.status(400).json({ error: 'New passphrase needs at least 6 characters' })
   }
+  const session = await readSession(req)
   if (await gateOn()) {
-    if (!(await validCookie(readCookie(req)))) return res.status(401).json({ error: 'unauthorized' })
-    const { ok } = await matches(String(current || ''))
-    if (!ok) return res.status(401).json({ error: 'Current passphrase is wrong' })
+    if (!session) return res.status(401).json({ error: 'unauthorized' })
+    const r = await resolve(String(current || ''))
+    if (!r.ok) return res.status(401).json({ error: 'Current passphrase is wrong' })
   }
-  await store(String(next))
-  // the secret just changed, so every existing cookie is now void - re-issue
-  // this one so he is not signed out by his own change
-  await issue(res)
+  if (session?.uid) await setBoardCode(session.uid, String(next))
+  else await storeShared(String(next))
+  await setSession(res, session?.uid || '')
   res.json({ ok: true })
 })
 

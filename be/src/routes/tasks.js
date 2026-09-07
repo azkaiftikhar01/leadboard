@@ -91,12 +91,32 @@ r.get('/', async (req, res) => {
 })
 
 r.post('/', async (req, res) => {
+  const body = { ...req.body }
+  if (body.track === 'lead') {
+    // an "on me" task belongs to a board. Default to the one creating it;
+    // naming someone else is how work is handed across.
+    body.owner = body.owner || req.board?.uid || null
+    const sameBoard = (req.board?.uid ?? null) === (body.owner ? String(body.owner) : null)
+    if (!sameBoard) body.handedBy = req.board?.me?._id ?? null
+  }
   const task = await Task.create({
-    ...req.body,
-    dueHasTime: Boolean(req.body.dueHasTime),
-    history: [{ from: null, to: req.body.state || 'assigned', by: req.body.actor }],
+    ...body,
+    dueHasTime: Boolean(body.dueHasTime),
+    history: [{ from: null, to: body.state || 'assigned', by: body.actor }],
   })
   res.status(201).json(task)
+})
+
+/** Move an existing task to another board. */
+r.post('/:id/hand', async (req, res) => {
+  const task = await Task.findById(req.params.id)
+  if (!task) return res.status(404).json({ error: 'not found' })
+  task.track = 'lead'
+  task.owner = req.body?.owner || null
+  task.handedBy = req.board?.uid || null
+  task.history.push({ from: task.state, to: task.state, at: new Date(), note: 'handed to another board' })
+  await task.save()
+  res.json(task)
 })
 
 r.patch('/:id', async (req, res) => {

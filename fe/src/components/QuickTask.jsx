@@ -4,7 +4,7 @@ import { Avatar, Modal, Field, Icon } from './ui.jsx'
 
 const TRACKS = [
   { key: 'team',   label: 'A dev',   hint: 'work you are assigning out' },
-  { key: 'lead',   label: 'Me',      hint: 'only you can unblock it' },
+  { key: 'lead',   label: 'A board', hint: 'yours, or hand it to another' },
   { key: 'client', label: 'Client',  hint: 'you are waiting on them' },
 ]
 
@@ -22,8 +22,12 @@ export function QuickTask({ project: fixedProject, onClose, onDone }) {
   const [due, setDue] = useState('')
   const [dueTime, setDueTime] = useState('')
   const [opts, setOpts] = useState({ projects: [], people: [] })
+  const [boards, setBoards] = useState({ boards: [], me: null })
+  const [owner, setOwner] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
+
+  useEffect(() => { api.boards().then((b) => { setBoards(b); setOwner(b.me ?? '') }).catch(() => {}) }, [])
 
   useEffect(() => {
     Promise.all([api.projects(), api.teamLoad()]).then(([p, load]) => {
@@ -43,6 +47,7 @@ export function QuickTask({ project: fixedProject, onClose, onDone }) {
         title: title.trim(), project, track,
         assignee: track === 'team' ? assignee || undefined : undefined,
         waitingOnLabel: track !== 'team' ? waitingOn : '',
+        owner: track === 'lead' ? owner || null : undefined,
         dueDate,
         dueHasTime: Boolean(due && dueTime),
       })
@@ -103,6 +108,24 @@ export function QuickTask({ project: fixedProject, onClose, onDone }) {
                 <em className={`load-chip load-${l.band.key}`} style={{ fontStyle: 'normal', fontSize: 10 }}>
                   {l.loadPercent}%
                 </em>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {track === 'lead' && boards.boards.length > 1 && (
+        <div className="field">
+          <label>Whose board</label>
+          <div className="board-pick">
+            {boards.boards.map((b) => (
+              <button
+                key={String(b.userId)}
+                className={String(owner || '') === String(b.userId || '') ? 'on' : ''}
+                onClick={() => setOwner(b.userId || '')}
+              >
+                {String(b.userId || '') === String(boards.me || '') ? 'My board' : b.name}
+                {b.open > 0 && <em>{b.open}</em>}
               </button>
             ))}
           </div>

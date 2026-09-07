@@ -17,6 +17,7 @@ import history from './routes/history.js'
 import focus from './routes/focus.js'
 import { shareAdmin, sharePublic } from './routes/share.js'
 import resources from './routes/resources.js'
+import boards from './routes/boards.js'
 import { requireAuth, authRoutes } from './auth.js'
 
 const app = express()
@@ -59,6 +60,7 @@ app.use('/api/history', history)
 app.use('/api/focus', focus)
 app.use('/api/shares', shareAdmin)
 app.use('/api/resources', resources)
+app.use('/api/boards', boards)
 
 app.use((err, _req, res, _next) => {
   console.error(err)

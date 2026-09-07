@@ -63,6 +63,9 @@ export function Today() {
         <div>
           <h1>Today</h1>
           <div className="sub">
+            {data.board?.name && data.board.role !== 'lead' && (
+              <><span className="board-chip"><Icon.projects size={12} /> {data.board.name}’s board</span> · </>
+            )}
             {total} open · {data.doneToday} cleared today
             {data.dueSoon.length > 0 && <> · <span style={{ color: 'var(--warn)' }}>{data.dueSoon.length} due soon</span></>}
           </div>
@@ -135,6 +138,7 @@ function TaskRow({ task, track, onTick, onDelete }) {
             </span>
           )}
           {track !== 'team' && task.waitingOnLabel && <span>{task.waitingOnLabel}</span>}
+          {task.handedBy?.name && <Tag tone="blue">from {task.handedBy.name}</Tag>}
           {task.project && <span>· {task.project.name}</span>}
           {task.daysOnTask >= 3 && <Tag tone="amber">day {task.daysOnTask}</Tag>}
           {due && <Tag tone={due.tone}>{due.text}</Tag>}

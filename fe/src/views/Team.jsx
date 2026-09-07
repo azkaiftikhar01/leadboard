@@ -3,6 +3,7 @@ import { api } from '../lib/api.js'
 import { Avatar, Tag, Empty, EmptyArt, Modal, Field, LoadMeter, Spinner, Dial, Icon } from '../components/ui.jsx'
 import { useConfirm } from '../components/Confirm.jsx'
 import { ShareLink } from '../components/ShareLink.jsx'
+import { BoardAccess } from '../components/BoardAccess.jsx'
 
 const BAND_LABEL = { free: 'Has room', ok: 'Comfortable', full: 'Full', over: 'Overloaded' }
 
@@ -16,9 +17,15 @@ export function Team() {
   const [adding, setAdding] = useState(false)
   const [open, setOpen] = useState(null)
   const [sharing, setSharing] = useState(null)
+  const [boardFor, setBoardFor] = useState(null)
+  const [boards, setBoards] = useState({ boards: [], isLead: true })
 
-  const load = () => api.teamLoad().then(setRows)
+  const load = () =>
+    Promise.all([api.teamLoad(), api.boards().catch(() => ({ boards: [], isLead: true }))])
+      .then(([r, b]) => { setRows(r); setBoards(b) })
   useEffect(() => { load() }, [])
+
+  const owns = (id) => boards.boards.some((b) => String(b.userId) === String(id))
 
   if (!rows) return <Spinner />
 
@@ -78,6 +85,14 @@ export function Team() {
                 >
                   <Icon.arrow size={13} /> Share their list
                 </button>
+                {boards.isLead && (
+                  <button
+                    className={`btn sm${owns(r.user._id) ? ' cool' : ''}`}
+                    onClick={(e) => { e.stopPropagation(); setBoardFor(r.user) }}
+                  >
+                    <Icon.projects size={13} /> {owns(r.user._id) ? 'Has a board' : 'Give a board'}
+                  </button>
+                )}
               </div>
 
               <div className="inline" style={{ marginTop: 11, gap: 6 }}>
@@ -102,6 +117,12 @@ export function Team() {
       {open && <DevDetail row={open} onClose={() => setOpen(null)} onChanged={load} />}
       {sharing && (
         <ShareLink kind="person" refId={sharing._id} name={sharing.name} onClose={() => setSharing(null)} />
+      )}
+      {boardFor && (
+        <BoardAccess
+          user={boardFor} hasBoard={owns(boardFor._id)}
+          onClose={() => setBoardFor(null)} onChanged={load}
+        />
       )}
     </>
   )

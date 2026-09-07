@@ -29,6 +29,16 @@ const taskSchema = new mongoose.Schema(
   {
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
     assignee: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
+    /**
+     * Whose board this sits on. Only meaningful for the 'lead' track, where
+     * there is no assignee — "on me" needs to know which me. Null means the
+     * lead's own board, so everything written before boards existed still
+     * lands where it always did.
+     */
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
+    /** set when one board owner hands this to another, so the receiving board
+     *  can say where it came from */
+    handedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     title: { type: String, required: true, trim: true },
     detail: { type: String, default: '' },
     track: { type: String, enum: Object.keys(TASK_TRACKS), default: 'team', index: true },

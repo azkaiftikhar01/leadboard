@@ -12,13 +12,23 @@ const dstr = (d) => d.toISOString().slice(0, 10)
  * The day board. Three tracks, because that is how his paper page was always
  * laid out: what the team owes, what the client owes, what he owes.
  */
-r.get('/', async (_req, res) => {
+r.get('/', async (req, res) => {
   const riskWindow = new Date(Date.now() + 3 * DAY)
 
+  // "On me" has to mean whose me. A null owner is the lead's board, so
+  // everything written before boards existed still lands where it always did.
+  const mine = req.board?.uid
+    ? { owner: req.board.uid }
+    : { $or: [{ owner: null }, { owner: { $exists: false } }] }
+
   const [open, inboxCount, standup, streak, load] = await Promise.all([
-    Task.find({ state: { $nin: ['done', 'dropped'] } })
+    Task.find({
+      state: { $nin: ['done', 'dropped'] },
+      $or: [{ track: { $ne: 'lead' } }, { track: 'lead', ...mine }],
+    })
       .populate('assignee', 'name avatarColor')
       .populate('project', 'name color mode')
+      .populate('handedBy', 'name')
       .sort('dueDate')
       .lean({ virtuals: true }),
     Capture.countDocuments({ status: { $in: ['pending', 'partial', 'failed'] } }),
@@ -50,6 +60,11 @@ r.get('/', async (_req, res) => {
 
   res.json({
     date: dstr(new Date()),
+    board: {
+      userId: req.board?.uid ?? null,
+      name: req.board?.me?.name ?? 'Lead',
+      role: req.board?.me?.role ?? 'lead',
+    },
     standupDone: Boolean(standup?.completed),
     streak,
     inboxCount,
