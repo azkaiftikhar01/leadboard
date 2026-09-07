@@ -22,7 +22,24 @@ import { requireAuth, authRoutes } from './auth.js'
 
 const app = express()
 
-app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') ?? true, credentials: true }))
+/**
+ * Production is same-origin, so this only matters in development - where a
+ * stale CORS_ORIGIN silently blocks every request and looks like the app is
+ * broken rather than misconfigured. Any localhost port is fine locally.
+ */
+const allowed = process.env.CORS_ORIGIN?.split(',').map((s) => s.trim())
+app.use(
+  cors({
+    credentials: true,
+    origin(origin, cb) {
+      if (!origin) return cb(null, true)
+      if (process.env.NODE_ENV !== 'production' && /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+        return cb(null, true)
+      }
+      cb(null, !allowed || allowed.includes(origin))
+    },
+  })
+)
 app.use(express.json({ limit: '2mb' }))
 if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'))
 

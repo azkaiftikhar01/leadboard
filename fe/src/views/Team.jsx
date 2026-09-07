@@ -118,7 +118,15 @@ export function Team() {
       )}
 
       {adding && <AddDev onClose={() => setAdding(false)} onSaved={() => { setAdding(false); load() }} />}
-      {open && <DevDetail row={open} onClose={() => setOpen(null)} onChanged={load} />}
+      {open && (
+        <DevDetail
+          row={open}
+          onClose={() => setOpen(null)}
+          onChanged={load}
+          hasBoard={owns(open.user._id)}
+          onGiveBoard={boards.isLead ? () => { setBoardFor(open.user); setOpen(null) } : null}
+        />
+      )}
       {sharing && (
         <ShareLink kind="person" refId={sharing._id} name={sharing.name} onClose={() => setSharing(null)} />
       )}
@@ -198,7 +206,7 @@ function AddDev({ onClose, onSaved }) {
   )
 }
 
-function DevDetail({ row, onClose, onChanged }) {
+function DevDetail({ row, onClose, onChanged, onGiveBoard, hasBoard }) {
   const confirm = useConfirm()
   const [card, setCard] = useState(null)
   useEffect(() => { api.scorecard(row.user._id).then(setCard) }, [row.user._id])
@@ -238,11 +246,18 @@ function DevDetail({ row, onClose, onChanged }) {
         </>
       }
     >
+      {onGiveBoard && (
+        <button className={`btn wide${hasBoard ? '' : ' primary'}`} onClick={onGiveBoard}>
+          <Icon.projects size={15} />
+          {hasBoard ? `Manage ${row.user.name}’s board` : `Give ${row.user.name} their own board`}
+        </button>
+      )}
+
       <Field label="On this board">
         <div className="seg" style={{ width: '100%' }}>
           {[
             { k: 'dev', l: 'Developer' },
-            { k: 'manager', l: 'Manager' },
+            { k: 'second', l: 'Second' },
             { k: 'lead', l: 'Team lead' },
           ].map((r) => (
             <button
@@ -253,6 +268,10 @@ function DevDetail({ row, onClose, onChanged }) {
               {r.l}
             </button>
           ))}
+        </div>
+        <div className="dim" style={{ fontSize: 11.5 }}>
+          A board of their own is what actually gives them their own tasks — the role
+          only says where they sit in the chain.
         </div>
       </Field>
 
@@ -282,13 +301,13 @@ function DevDetail({ row, onClose, onChanged }) {
         <div>
           <div className="eyebrow" style={{ marginBottom: 8 }}>Track record · 12 weeks</div>
           <div className="inline" style={{ gap: 7 }}>
-            <Tag tone={card.reliability >= 0.8 ? 'green' : card.reliability === null ? '' : 'red'}>
-              {card.reliability === null ? 'no deliveries' : `${Math.round(card.reliability * 100)}% on time`}
+            <Tag tone={card.reliability == null ? '' : card.reliability >= 0.8 ? 'green' : 'red'}>
+              {card.reliability == null ? 'no deliveries yet' : `${Math.round(card.reliability * 100)}% on time`}
             </Tag>
-            <Tag tone={card.reworkIndex >= 0 ? 'green' : 'red'}>
-              rework {card.reworkIndex > 0 ? '+' : ''}{Number(card.reworkIndex).toFixed(1)}
+            <Tag tone={(card.reworkIndex ?? 0) >= 0 ? 'green' : 'red'}>
+              rework {(card.reworkIndex ?? 0) > 0 ? '+' : ''}{Number(card.reworkIndex ?? 0).toFixed(1)}
             </Tag>
-            <Tag>{card.tasksCompleted} completed</Tag>
+            <Tag>{card.tasksCompleted ?? 0} completed</Tag>
           </div>
         </div>
       )}

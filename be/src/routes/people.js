@@ -57,9 +57,15 @@ r.get('/:id/scorecard', async (req, res) => {
   const user = await User.findById(req.params.id).lean()
   if (!user) return res.status(404).json({ error: 'not found' })
   const weeks = Number(req.query.weeks) || 12
-  const card = user.role === 'lead'
-    ? await leadScorecard(user._id, { weeks })
-    : await scorecard(user._id, { weeks })
+  // One shape for everyone. Returning a different set of fields for a lead
+  // meant any UI that did not special-case them rendered NaN - which is exactly
+  // what happened the moment somebody was promoted.
+  const card = {
+    ...(await scorecard(user._id, { weeks })),
+    ...(user.role === 'lead' || user.role === 'second'
+      ? { lead: await leadScorecard(user._id, { weeks }) }
+      : {}),
+  }
   const openTasks = await Task.find({ assignee: user._id, state: { $nin: ['done', 'dropped'] } })
     .populate('project', 'name color')
     .lean()
