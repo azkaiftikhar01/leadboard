@@ -18,7 +18,7 @@ import focus from './routes/focus.js'
 import { shareAdmin, sharePublic } from './routes/share.js'
 import resources from './routes/resources.js'
 import boards from './routes/boards.js'
-import { requireAuth, authRoutes } from './auth.js'
+import { requireAuth, requireLead, authRoutes } from './auth.js'
 
 const app = express()
 
@@ -71,8 +71,9 @@ app.use('/api/captures', captures)
 app.use('/api/standup', standup)
 app.use('/api/blockers', blockers)
 app.use('/api/today', today)
-app.use('/api/awards', awards)
-app.use('/api/notes', notes)
+// the team's performance record and the lead's own notes: theirs alone
+app.use('/api/awards', requireLead, awards)
+app.use('/api/notes', requireLead, notes)
 app.use('/api/history', history)
 app.use('/api/focus', focus)
 app.use('/api/shares', shareAdmin)

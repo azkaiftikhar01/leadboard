@@ -141,6 +141,18 @@ export async function requireAuth(req, res, next) {
   next()
 }
 
+/**
+ * Lead-only routes.
+ *
+ * Managing how the team is performing is the lead's job, not a second's, so the
+ * scoreboard and the lead's notes are gated here rather than merely hidden in
+ * the interface - a hidden page whose data is still fetchable is not hidden.
+ */
+export function requireLead(req, res, next) {
+  if (req.board?.isLead) return next()
+  res.status(403).json({ error: 'Only the lead can see this.' })
+}
+
 export const authRoutes = Router()
 
 authRoutes.get('/state', async (req, res) => {

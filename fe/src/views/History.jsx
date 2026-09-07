@@ -47,6 +47,11 @@ export function History() {
   const [project, setProject] = useState('')
   const [kinds, setKinds] = useState({ completed: true, rework: true, award: true, standup: true })
   const [opts, setOpts] = useState({ people: [], projects: [] })
+  // the server strips rework and awards for a second; offering the filters
+  // would just be two chips that never change anything
+  const shownKinds = Object.keys(kinds).filter(
+    (k) => data?.isLead !== false || (k !== 'rework' && k !== 'award')
+  )
 
   useEffect(() => {
     Promise.all([api.people(), api.projects()])
@@ -106,7 +111,7 @@ export function History() {
           {opts.projects.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
         </select>
         <span className="hist-kinds">
-          {Object.keys(kinds).map((k) => (
+          {shownKinds.map((k) => (
             <button key={k} className={kinds[k] ? 'on' : ''}
               onClick={() => setKinds((v) => ({ ...v, [k]: !v[k] }))}>
               {k === 'completed' ? 'Completed' : k === 'rework' ? 'Rework' : k === 'award' ? 'Awards' : 'Standups'}

@@ -44,7 +44,7 @@ const DOCK = [
   { side: 'r', to: '#/inbox', label: 'Inbox', icon: 'inbox', badge: 'inbox' },
   { side: 'r', to: '#/projects', label: 'Projects', icon: 'projects', sec: true },
   { side: 'r', to: '#/team', label: 'Team', icon: 'team', sec: true },
-  { side: 'r', to: '#/score', label: 'Scoreboard', icon: 'chart', sec: true },
+  { side: 'r', to: '#/score', label: 'Scoreboard', icon: 'chart', sec: true, leadOnly: true },
   { side: 'r', to: '#/history', label: 'History', icon: 'history', sec: true },
 ]
 
@@ -86,11 +86,14 @@ export default function App() {
 
   const pull = useCallback(async () => {
     try {
-      const [today, review, people, projects] = await Promise.all([
-        api.today(), api.reviewQueue(), api.people(), api.projects(),
+      const today = await api.today()
+      const isLead = (today.board?.role ?? 'lead') === 'lead'
+      const [review, people, projects] = await Promise.all([
+        api.reviewQueue(), api.people(), api.projects(),
       ])
       setCounts({
         board: today.board ?? null,
+        isLead: (today.board?.role ?? 'lead') === 'lead',
         owed: today.badge.owed, inbox: today.inboxCount, review: review.length, streak: today.streak,
         people: people.filter((p) => p.role === 'dev').length,
         projects: projects.length,
@@ -114,7 +117,10 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPaletteOpen((v) => !v) }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'Space') { e.preventDefault(); cap.toggle() }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') { e.preventDefault(); setAdding(true) }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') { e.preventDefault(); setNotesOpen((v) => !v) }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') {
+        e.preventDefault()
+        if (counts?.isLead !== false) setNotesOpen((v) => !v)
+      }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && e.shiftKey) { e.preventDefault(); setFocusOpen(true) }
       if (e.key === 'Escape' && (cap.live || cap.capture || cap.error)) cap.dismiss()
     }
@@ -132,8 +138,10 @@ export default function App() {
   if (view === 'popover') return <ConfirmProvider><div className="popover"><Today /></div></ConfirmProvider>
   if (view === 'capture') return <CaptureOverlay />
 
+  const isLead = counts?.isLead !== false
   const firstRun = counts && !counts.projects && hash === '#/'
-  const View = ROUTES[hash] || Today
+  const LEAD_ONLY = new Set(['#/score'])
+  const View = (LEAD_ONLY.has(hash) && !isLead ? null : ROUTES[hash]) || Today
 
   const go = (to) => { location.hash = to }
   const paletteItems = [
@@ -143,11 +151,11 @@ export default function App() {
     { label: 'Inbox', icon: 'inbox', group: 'Go', run: () => go('#/inbox') },
     { label: 'Team & bandwidth', icon: 'team', group: 'Go', run: () => go('#/team') },
     { label: 'Projects', icon: 'projects', group: 'Go', run: () => go('#/projects') },
-    { label: 'Scoreboard', icon: 'chart', group: 'Go', run: () => go('#/score') },
+    ...(isLead ? [{ label: 'Scoreboard', icon: 'chart', group: 'Go', run: () => go('#/score') }] : []),
     { label: 'History — what already happened', icon: 'history', group: 'Go', run: () => go('#/history') },
-    { label: 'Notes', icon: 'note', group: 'Go', run: () => setNotesOpen(true) },
+    ...(isLead ? [{ label: 'Notes', icon: 'note', group: 'Go', run: () => setNotesOpen(true) }] : []),
     { label: 'Focus for a while', icon: 'focus', group: 'Do', run: () => setFocusOpen(true) },
-    { label: 'Log what you saw', icon: 'spark', group: 'Do', run: () => setGiving(true) },
+    ...(isLead ? [{ label: 'Log what you saw', icon: 'spark', group: 'Do', run: () => setGiving(true) }] : []),
     { label: 'Change the passphrase', icon: 'gear', group: 'Do', run: () => setSettingsOpen(true) },
     { label: 'Sign out', icon: 'back', group: 'Do', run: signOut },
     { label: 'Add a task', icon: 'plus', group: 'Do', run: () => setAdding(true) },
@@ -209,7 +217,9 @@ export default function App() {
       )}
 
       <Dock
-        items={DOCK} hash={hash} counts={counts || {}}
+        items={DOCK.filter((i) => !i.leadOnly || isLead)}
+        hash={hash} counts={counts || {}}
+        isLead={isLead}
         micLive={cap.live} micLevel={cap.level} onMic={cap.toggle}
         onAdd={() => setAdding(true)}
         onNotes={() => setNotesOpen((v) => !v)} notesOpen={notesOpen}
@@ -222,7 +232,7 @@ export default function App() {
       {paletteOpen && <Palette items={paletteItems} onClose={() => setPaletteOpen(false)} />}
       {giving && <GiveAward onClose={() => setGiving(false)} onDone={pull} />}
       {adding && <QuickTask onClose={() => setAdding(false)} onDone={pull} />}
-      <Notes open={notesOpen} onClose={() => setNotesOpen(false)} />
+      {isLead && <Notes open={notesOpen} onClose={() => setNotesOpen(false)} />}
       <Focus open={focusOpen} onClose={() => setFocusOpen(false)} onFinished={pull} />
 
       <EdgeGlow on={deadlines.glow} />

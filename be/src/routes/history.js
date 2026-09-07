@@ -81,6 +81,10 @@ r.get('/', async (req, res) => {
           .lean(),
   ])
 
+  // Awards and rework ARE the scoreboard, just serialised. Leaving them here
+  // for a second would make gating the scoreboard page theatre.
+  const leadOnly = Boolean(req.board?.isLead)
+
   const events = [
     ...done.map((t) => ({
       type: 'completed',
@@ -95,7 +99,7 @@ r.get('/', async (req, res) => {
       // late is measured against what was promised, not against how long it took
       late: t.dueDate ? t.doneAt > endOfDueDay(t) : null,
     })),
-    ...rework.map((e) => ({
+    ...(leadOnly ? rework : []).map((e) => ({
       type: 'rework',
       at: e.occurredAt,
       title: e.task?.title || 'a task',
@@ -107,7 +111,7 @@ r.get('/', async (req, res) => {
       points: e.points,
       note: e.note,
     })),
-    ...awards.map((a) => ({
+    ...(leadOnly ? awards : []).map((a) => ({
       type: 'award',
       at: a.givenAt,
       title: AWARDS[a.kind]?.label || a.kind,
@@ -139,6 +143,7 @@ r.get('/', async (req, res) => {
   }
 
   res.json({
+    isLead: leadOnly,
     events: events.slice(0, Number(req.query.limit) || 200),
     summary: {
       days,

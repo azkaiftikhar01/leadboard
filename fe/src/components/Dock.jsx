@@ -10,7 +10,7 @@ import { Icon } from './ui.jsx'
  * times a day. Voice sits beside it as one button among many - it is a shortcut
  * for the times his hands are busy, not the main way in.
  */
-export function Dock({ items, hash, counts, micLive, micLevel, onMic, onAdd, onNotes, notesOpen, onFocus, onSettings, onPalette, theme, onTheme }) {
+export function Dock({ items, hash, counts, micLive, micLevel, onMic, onAdd, onNotes, notesOpen, isLead = true, onFocus, onSettings, onPalette, theme, onTheme }) {
   const Btn = ({ to, label, icon, badge, calm, sec }) => {
     const I = Icon[icon]
     const n = badge ? counts[badge] : 0
@@ -52,14 +52,16 @@ export function Dock({ items, hash, counts, micLive, micLevel, onMic, onAdd, onN
             <Icon.focus size={19} />
             <span className="tip">Focus — ⌘⇧F</span>
           </button>
-          <button
-            className={`dock-btn${notesOpen ? ' on' : ''}`}
-            onClick={onNotes}
-            aria-label="Notes"
-          >
-            <Icon.note size={19} />
-            <span className="tip">Notes — ⌘J</span>
-          </button>
+          {isLead && (
+            <button
+              className={`dock-btn${notesOpen ? ' on' : ''}`}
+              onClick={onNotes}
+              aria-label="Notes"
+            >
+              <Icon.note size={19} />
+              <span className="tip">Notes — ⌘J</span>
+            </button>
+          )}
           <button
             className={`dock-btn${micLive ? ' mic-live' : ''}`}
             onClick={onMic}
