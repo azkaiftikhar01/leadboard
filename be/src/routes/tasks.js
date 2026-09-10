@@ -120,7 +120,20 @@ r.post('/:id/hand', async (req, res) => {
 })
 
 r.patch('/:id', async (req, res) => {
-  res.json(await Task.findByIdAndUpdate(req.params.id, req.body, { new: true }))
+  // an allowlist, so a PATCH cannot quietly rewrite history, ownership or state
+  const patch = {}
+  for (const k of ['title', 'detail', 'project', 'assignee', 'track', 'priority',
+                   'color', 'dueDate', 'dueHasTime', 'waitingOnLabel', 'owner']) {
+    if (req.body[k] !== undefined) patch[k] = req.body[k] === '' && k !== 'title' ? null : req.body[k]
+  }
+  if (patch.dueDate === null) patch.dueHasTime = false
+  // a changed deadline deserves to alarm again
+  if (patch.dueDate !== undefined) patch.dueNotifiedAt = null
+
+  const task = await Task.findByIdAndUpdate(req.params.id, patch, { new: true })
+    .populate('assignee', 'name avatarColor')
+    .populate('project', 'name color')
+  res.json(task)
 })
 
 /**

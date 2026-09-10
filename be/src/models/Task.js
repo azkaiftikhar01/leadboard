@@ -46,6 +46,8 @@ const taskSchema = new mongoose.Schema(
     // who or what we are waiting on, when it is not a dev on the team
     waitingOnLabel: { type: String, default: '' },
     priority: { type: String, enum: ['low', 'normal', 'high', 'urgent'], default: 'normal' },
+    /** a personal marker, for grouping by eye rather than by field */
+    color: { type: String, default: '' },
     estimateHours: Number,
     dueDate: Date,
     /** whether the due date names a moment or just a day. A task due "Friday"

@@ -1869,3 +1869,36 @@ input::placeholder { color: var(--text-3); }
 .notes-drawer.embedded .notes-bar { padding: 4px 6px 12px; border-bottom: 1px solid var(--line); }
 .notes-drawer.embedded .notes-body { padding: 0 2px 8px; }
 .notes-drawer.embedded .note-grid { grid-template-columns: 1fr; gap: 7px; }
+
+/* ---------- colour swatches ---------- */
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatch {
+  width: 34px; height: 34px; border-radius: 11px;
+  display: grid; place-items: center; color: #fff;
+  border: 2px solid transparent; transition: all .14s var(--ease);
+}
+.swatch:hover { transform: translateY(-2px); }
+.swatch.on { border-color: var(--text); box-shadow: var(--sh-2); }
+.swatch.none {
+  background: var(--s-2); border: 2px dashed var(--line-2); color: var(--text-3);
+}
+
+/* a task's colour reads as a spine, not a dot lost in a row of tags */
+.task { position: relative; }
+.task[data-color]::before {
+  content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
+  width: 3px; border-radius: 3px; background: var(--task-color);
+}
+.task[data-color] { padding-left: 15px; }
+
+/* the row body is a button now; it must not look like one */
+.task .body, .widget-row .body {
+  background: none; border: none; padding: 0; text-align: left;
+  font: inherit; color: inherit; cursor: pointer;
+}
+.task .body:hover .t, .widget-row .body:hover .t { color: var(--c-primary); }
+.widget-row[data-color] { padding-left: 14px; position: relative; }
+.widget-row[data-color]::before {
+  content: ''; position: absolute; left: 3px; top: 8px; bottom: 8px;
+  width: 3px; border-radius: 3px; background: var(--task-color);
+}

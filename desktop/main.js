@@ -296,9 +296,13 @@ app.whenReady().then(async () => {
   createPopover()
   createCapture()
 
-  // whatever was open last time comes back
+  // Whatever was open last time comes back. On a first run there is no store,
+  // and a tray-only app with a hidden dock looks like nothing happened - so
+  // show the task list, which is the reason to have this running at all.
   const saved = readStore()
-  for (const kind of Object.keys(WIDGETS)) if (saved[kind]?.open) openWidget(kind)
+  const known = Object.keys(WIDGETS).some((k) => saved[k])
+  if (!known) openWidget('tasks')
+  else for (const kind of Object.keys(WIDGETS)) if (saved[kind]?.open) openWidget(kind)
 
   globalShortcut.register('Alt+Space', showCapture)
   globalShortcut.register('CommandOrControl+Shift+L', () => openMain('#/'))

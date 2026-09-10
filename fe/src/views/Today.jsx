@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { useConfirm } from '../components/Confirm.jsx'
 import { ShareLink } from '../components/ShareLink.jsx'
+import { EditTask, colorOf } from '../components/EditTask.jsx'
 import { Avatar, Tag, Empty, Streak, Modal, Field, Spinner, Dial, Spark, Icon, dueLabel } from '../components/ui.jsx'
 
 const TRACKS = [
@@ -20,6 +21,7 @@ export function Today() {
   const [data, setData] = useState(null)
   const [adding, setAdding] = useState(null)
   const [sharingMine, setSharingMine] = useState(false)
+  const [editing, setEditing] = useState(null)
   const [err, setErr] = useState(null)
 
   const load = () => api.today().then(setData).catch((e) => setErr(e.message))
@@ -102,7 +104,10 @@ export function Today() {
                   <Empty icon="check">Clear.</Empty>
                 ) : (
                   list.map((t) => (
-                    <TaskRow key={t._id} task={t} track={tr.key} onTick={() => tick(t)} onDelete={() => remove(t)} />
+                    <TaskRow
+                      key={t._id} task={t} track={tr.key}
+                      onTick={() => tick(t)} onDelete={() => remove(t)} onEdit={() => setEditing(t)}
+                    />
                   ))
                 )}
                 <button className="btn ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => setAdding(tr.key)}>
@@ -118,17 +123,23 @@ export function Today() {
         <ShareLink kind="mine" name="my" onClose={() => setSharingMine(false)} />
       )}
 
+      {editing && (
+        <EditTask task={editing} onClose={() => setEditing(null)} onSaved={load} />
+      )}
+
       {adding && <AddTask track={adding} onClose={() => setAdding(null)} onSaved={() => { setAdding(null); load() }} />}
     </>
   )
 }
 
-function TaskRow({ task, track, onTick, onDelete }) {
+function TaskRow({ task, track, onTick, onDelete, onEdit }) {
   const due = dueLabel(task.dueDate, task.dueHasTime)
+  const hex = colorOf(task.color)
   return (
-    <div className="task">
+    <div className="task" data-color={task.color || undefined}
+         style={hex ? { '--task-color': hex } : undefined}>
       <button className="tick" onClick={onTick} title="Mark done"><Icon.check size={13} /></button>
-      <div className="body">
+      <button className="body" onClick={onEdit} title="Edit">
         <div className="t">{task.title}</div>
         <div className="m">
           {track === 'team' && task.assignee && (
@@ -144,7 +155,7 @@ function TaskRow({ task, track, onTick, onDelete }) {
           {due && <Tag tone={due.tone}>{due.text}</Tag>}
           {task.reopenCount > 0 && <Tag tone="red">back ×{task.reopenCount}</Tag>}
         </div>
-      </div>
+      </button>
       <button className="row-del" onClick={onDelete} title="Delete task"><Icon.trash size={14} /></button>
     </div>
   )

@@ -97,6 +97,7 @@ export const api = {
   tasks: (q = '') => req(`/tasks${q}`),
   addTask: (b) => req('/tasks', { method: 'POST', body: JSON.stringify(b) }),
   toggleTask: (id) => req(`/tasks/${id}/toggle`, { method: 'POST', body: JSON.stringify({}) }),
+  patchTask: (id, b) => req(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(b) }),
   deleteTask: (id) => req(`/tasks/${id}`, { method: 'DELETE' }),
   dueTasks: () => req('/tasks/due'),
   markNotified: (id) => req(`/tasks/${id}/notified`, { method: 'POST', body: JSON.stringify({}) }),

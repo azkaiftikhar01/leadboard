@@ -56,6 +56,14 @@ r.get('/', async (req, res) => {
     team: open.filter((t) => t.track === 'team'),
   }
   const dueSoon = open.filter((t) => t.dueDate && new Date(t.dueDate) <= riskWindow)
+
+  // Work that is this person's own, whichever track it sits on. dueSoon spans
+  // the whole org, which is right for a board that oversees everyone and wrong
+  // for a widget titled "On me" - a second was seeing other people's tasks.
+  const meId = req.board?.me?._id
+  const myTasks = meId
+    ? open.filter((t) => String(t.assignee?._id ?? t.assignee ?? '') === String(meId))
+    : []
   const stale = open.filter((t) => t.track === 'team' && (t.daysOnTask ?? 0) >= 4)
 
   res.json({
@@ -72,6 +80,7 @@ r.get('/', async (req, res) => {
     doneWeek,
     tracks: byTrack,
     dueSoon,
+    mine: myTasks,
     stale,
     load: load.map((l) => ({
       user: { _id: l.user._id, name: l.user.name, avatarColor: l.user.avatarColor },

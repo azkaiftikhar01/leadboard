@@ -3,6 +3,7 @@ import { api } from '../lib/api.js'
 import { Avatar, Tag, Icon, Spinner, dueLabel } from '../components/ui.jsx'
 import { Focus } from '../components/Focus.jsx'
 import { Notes } from '../components/Notes.jsx'
+import { EditTask, colorOf } from '../components/EditTask.jsx'
 
 const shell = () => (typeof window !== 'undefined' ? window.leadboard : null)
 
@@ -57,6 +58,7 @@ export function Widget({ kind }) {
 function TaskWidget() {
   const [data, setData] = useState(null)
   const [err, setErr] = useState(null)
+  const [editing, setEditing] = useState(null)
 
   const load = useCallback(() => {
     api.today().then(setData).catch((e) => setErr(e.unauthorized ? 'auth' : e.message))
@@ -85,58 +87,60 @@ function TaskWidget() {
   if (err) return <div className="widget-empty"><p>{err}</p></div>
   if (!data) return <Spinner />
 
-  const mine = data.tracks.lead
-  const soon = data.dueSoon.filter((t) => t.track !== 'lead')
+  // Only this person's work. dueSoon spans the whole org, which is right for a
+  // board that oversees everyone and wrong for a widget called "On me".
+  const onMe = data.tracks.lead
+  const assigned = (data.mine ?? []).filter((t) => t.track !== 'lead')
 
   return (
     <>
-      {mine.length === 0 && soon.length === 0 ? (
+      {onMe.length === 0 && assigned.length === 0 ? (
         <div className="widget-empty">
           <Icon.check size={22} />
           <p>Nothing waiting on you.</p>
         </div>
       ) : (
         <>
-          {mine.map((t) => {
-            const d = dueLabel(t.dueDate, t.dueHasTime)
-            return (
-              <div className="widget-row" key={t._id}>
-                <button className="tick" onClick={() => tick(t)}><Icon.check size={12} /></button>
-                <div className="body">
-                  <div className="t">{t.title}</div>
-                  <div className="m">
-                    {t.waitingOnLabel && <span>{t.waitingOnLabel}</span>}
-                    {t.project?.name && <span>· {t.project.name}</span>}
-                    {d && <Tag tone={d.tone}>{d.text}</Tag>}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+          {onMe.map((t) => <Row key={t._id} t={t} onTick={tick} onEdit={setEditing} />)}
 
-          {soon.length > 0 && (
+          {assigned.length > 0 && (
             <>
-              <div className="widget-head">Due soon</div>
-              {soon.slice(0, 5).map((t) => {
-                const d = dueLabel(t.dueDate, t.dueHasTime)
-                return (
-                  <div className="widget-row muted-row" key={t._id}>
-                    {t.assignee ? <Avatar user={t.assignee} size={18} /> : <span className="widget-pip" />}
-                    <div className="body">
-                      <div className="t">{t.title}</div>
-                      <div className="m">
-                        {t.assignee?.name && <span>{t.assignee.name}</span>}
-                        {d && <Tag tone={d.tone}>{d.text}</Tag>}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+              <div className="widget-head">Assigned to me</div>
+              {assigned.map((t) => <Row key={t._id} t={t} onTick={tick} onEdit={setEditing} />)}
             </>
           )}
         </>
       )}
+
+      {editing && (
+        <EditTask task={editing} compact onClose={() => setEditing(null)} onSaved={load} />
+      )}
     </>
+  )
+}
+
+/** One row, tickable and editable — a list you cannot correct is a list you
+ *  stop trusting the moment something in it is wrong. */
+function Row({ t, onTick, onEdit }) {
+  const d = dueLabel(t.dueDate, t.dueHasTime)
+  const hex = colorOf(t.color)
+  return (
+    <div
+      className="widget-row" data-color={t.color || undefined}
+      style={hex ? { '--task-color': hex } : undefined}
+    >
+      <button className="tick" onClick={() => onTick(t)}><Icon.check size={12} /></button>
+      <button className="body" onClick={() => onEdit(t)} title="Edit">
+        <div className="t">{t.title}</div>
+        <div className="m">
+          {t.assignee?.name && <span className="inline" style={{ gap: 4 }}><Avatar user={t.assignee} size={14} />{t.assignee.name}</span>}
+          {t.waitingOnLabel && <span>{t.waitingOnLabel}</span>}
+          {t.project?.name && <span>· {t.project.name}</span>}
+          {t.priority === 'urgent' && <Tag tone="red">urgent</Tag>}
+          {d && <Tag tone={d.tone}>{d.text}</Tag>}
+        </div>
+      </button>
+    </div>
   )
 }
 
