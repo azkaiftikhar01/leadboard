@@ -64,7 +64,10 @@ const view = (name, extra = '') =>
 /* ---------------- widgets ---------------- */
 
 function cornerFor(spec) {
-  const { workArea } = screen.getPrimaryDisplay()
+  // The display the cursor is on, not the primary one. With a second monitor
+  // attached those are often different, and a widget that opens on the screen
+  // you are not looking at is indistinguishable from one that never opened.
+  const { workArea } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
   const pad = 16
   const right = workArea.x + workArea.width - spec.w - pad
   const bottom = workArea.y + workArea.height - spec.h - pad
@@ -86,7 +89,15 @@ function openWidget(kind) {
 
   const spec = WIDGETS[kind]
   const saved = readStore()[kind]
-  const at = saved?.x != null ? { x: saved.x, y: saved.y } : cornerFor(spec)
+
+  // A remembered position can name a monitor that is no longer plugged in,
+  // which restores the widget where nobody can see it.
+  const onScreen = (x, y) =>
+    x != null && screen.getAllDisplays().some((d) => {
+      const a = d.workArea
+      return x >= a.x - 40 && x <= a.x + a.width - 60 && y >= a.y - 20 && y <= a.y + a.height - 60
+    })
+  const at = onScreen(saved?.x, saved?.y) ? { x: saved.x, y: saved.y } : cornerFor(spec)
 
   const win = new BrowserWindow({
     width: saved?.w ?? spec.w,
@@ -111,17 +122,36 @@ function openWidget(kind) {
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   win.loadURL(view('widget', `&kind=${kind}`))
 
-  const remember = () => {
-    const b = win.getBounds()
-    writeStore({ ...readStore(), [kind]: b })
+  // Persist open/closed as it happens. Writing it only at quit meant a force
+  // kill left no flag at all, and the next launch opened nothing - with the
+  // dock hidden that is indistinguishable from the app failing to start.
+  const remember = (open = true) => {
+    const store = readStore()
+    const bounds = win.isDestroyed() ? (store[kind] ?? {}) : win.getBounds()
+    writeStore({ ...store, [kind]: { ...bounds, open } })
   }
-  win.on('moved', remember)
-  win.on('resized', remember)
-  win.on('closed', () => widgets.delete(kind))
+  remember(true)
+  win.on('moved', () => remember(true))
+  win.on('resized', () => remember(true))
+  win.on('closed', () => {
+    remember(false)
+    widgets.delete(kind)
+    tray?.setContextMenu(contextMenu())
+  })
 
   widgets.set(kind, win)
   tray?.setContextMenu(contextMenu())
   return win
+}
+
+/** Round them all up onto whichever screen the cursor is on. */
+function gatherWidgets() {
+  for (const [kind, win] of widgets) {
+    if (win.isDestroyed()) continue
+    const at = cornerFor(WIDGETS[kind])
+    win.setPosition(at.x, at.y, false)
+    win.show()
+  }
 }
 
 function toggleWidget(kind) {
@@ -197,6 +227,7 @@ function contextMenu() {
         click: () => toggleWidget(kind),
       })),
     },
+    { label: 'Bring widgets to this screen', click: gatherWidgets },
     { type: 'separator' },
     { label: 'Open the board', click: () => openMain('#/') },
     {
@@ -331,9 +362,11 @@ app.whenReady().then(async () => {
   // and a tray-only app with a hidden dock looks like nothing happened - so
   // show the task list, which is the reason to have this running at all.
   const saved = readStore()
-  const known = Object.keys(WIDGETS).some((k) => saved[k])
-  if (!known) openWidget('tasks')
-  else for (const kind of Object.keys(WIDGETS)) if (saved[kind]?.open) openWidget(kind)
+  const remembered = Object.keys(WIDGETS).filter((k) => saved[k]?.open)
+  const everRecorded = Object.keys(WIDGETS).some((k) => saved[k]?.open !== undefined)
+
+  if (remembered.length) remembered.forEach(openWidget)
+  else if (!everRecorded) openWidget('tasks')
 
   globalShortcut.register('Alt+Space', showCapture)
   globalShortcut.register('CommandOrControl+Shift+L', () => openMain('#/'))
@@ -359,7 +392,7 @@ app.on('before-quit', () => {
   // remember which widgets were open, not just where they were
   const store = readStore()
   for (const kind of Object.keys(WIDGETS)) {
-    store[kind] = { ...(store[kind] || {}), open: widgets.has(kind) }
+    if (store[kind]) store[kind] = { ...store[kind], open: widgets.has(kind) }
   }
   writeStore(store)
 })
