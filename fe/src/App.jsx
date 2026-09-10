@@ -10,6 +10,7 @@ import { Inbox } from './views/Inbox.jsx'
 import { Start } from './views/Start.jsx'
 import { Lock } from './views/Lock.jsx'
 import { PublicBoard } from './views/PublicBoard.jsx'
+import { Widget } from './views/Widget.jsx'
 import { Mic } from './components/Mic.jsx'
 import { Dock } from './components/Dock.jsx'
 import { Palette } from './components/Palette.jsx'
@@ -135,6 +136,10 @@ export default function App() {
   if (authed === null) return <div className="lock"><span className="spinner" /></div>
   if (authed === false) return <Lock onIn={() => { setAuthed(true); pull() }} />
 
+  if (view === 'widget') {
+    const kind = new URLSearchParams(location.search).get('kind') || 'tasks'
+    return <ConfirmProvider><Widget kind={kind} /></ConfirmProvider>
+  }
   if (view === 'popover') return <ConfirmProvider><div className="popover"><Today /></div></ConfirmProvider>
   if (view === 'capture') return <CaptureOverlay />
 

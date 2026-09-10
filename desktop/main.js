@@ -1,52 +1,155 @@
 const {
   app, BrowserWindow, Tray, Menu, globalShortcut, nativeImage,
-  ipcMain, Notification, screen, shell, systemPreferences,
+  ipcMain, Notification, screen, systemPreferences,
 } = require('electron')
 const path = require('node:path')
+const fs = require('node:fs')
 
+/**
+ * The desktop shell.
+ *
+ * The whole reason this exists is that a browser tab dies with the browser. A
+ * lead who closes Chrome should not lose sight of what he owes, so this runs on
+ * its own: a tray icon, and any number of small always-on-top widgets that sit
+ * over whatever he is actually working in.
+ */
+
+// Point at the deployment by default so widgets share one signed-in session with
+// the browser's own cookies for that origin, and pick up every deploy.
+const APP_URL = process.env.LEADBOARD_URL || 'https://leadboard-two.vercel.app'
 const DEV = process.env.LEADBOARD_DEV === '1'
-const API = process.env.LEADBOARD_API || 'http://localhost:4000/api'
-const RENDERER = DEV ? 'http://localhost:5180' : `file://${path.join(__dirname, '../fe/dist/index.html')}`
+const BASE = DEV ? 'http://localhost:5180' : APP_URL
+const API = process.env.LEADBOARD_API || `${BASE.replace(/\/$/, '')}/api`
 
-// he does standup first thing; this is the alarm clock for the streak
 const STANDUP_HOUR = Number(process.env.LEADBOARD_STANDUP_HOUR || 9)
-const POLL_MS = 5 * 60 * 1000
+const POLL_MS = 60 * 1000
+
+/** Each widget is one feature, small enough to leave open beside real work. */
+const WIDGETS = {
+  tasks: { label: 'Task list', w: 340, h: 460, corner: 'top-right' },
+  focus: { label: 'Focus timer', w: 300, h: 330, corner: 'bottom-right' },
+  notes: { label: 'Notes', w: 340, h: 420, corner: 'bottom-left' },
+}
 
 let tray = null
 let popover = null
 let capture = null
 let mainWindow = null
+const widgets = new Map()
 let lastNudge = {}
 
-const url = (view, route = '') =>
-  DEV ? `${RENDERER}/?view=${view}${route}` : `${RENDERER}?view=${view}${route}`
+/* ---------------- remembered geometry ---------------- */
+
+const storeFile = () => path.join(app.getPath('userData'), 'widgets.json')
+
+function readStore() {
+  try { return JSON.parse(fs.readFileSync(storeFile(), 'utf8')) } catch { return {} }
+}
+function writeStore(next) {
+  try { fs.writeFileSync(storeFile(), JSON.stringify(next, null, 2)) } catch { /* not worth crashing over */ }
+}
 
 const baseWebPrefs = {
   preload: path.join(__dirname, 'preload.js'),
   contextIsolation: true,
   nodeIntegration: false,
+  // one session for every window, so signing in once covers all of them
+  partition: 'persist:leadboard',
 }
 
-/* ------------------------------------------------------------------ *
- * Tray — ambient status. The point is that he reads it peripherally
- * without opening anything, the way people read an unread badge.
- * ------------------------------------------------------------------ */
+const view = (name, extra = '') =>
+  `${BASE.replace(/\/$/, '')}/?view=${name}${extra}`
+
+/* ---------------- widgets ---------------- */
+
+function cornerFor(spec) {
+  const { workArea } = screen.getPrimaryDisplay()
+  const pad = 16
+  const right = workArea.x + workArea.width - spec.w - pad
+  const bottom = workArea.y + workArea.height - spec.h - pad
+  return {
+    'top-right': { x: right, y: workArea.y + pad },
+    'bottom-right': { x: right, y: bottom },
+    'bottom-left': { x: workArea.x + pad, y: bottom },
+    'top-left': { x: workArea.x + pad, y: workArea.y + pad },
+  }[spec.corner]
+}
+
+function openWidget(kind) {
+  const existing = widgets.get(kind)
+  if (existing && !existing.isDestroyed()) {
+    existing.show()
+    existing.focus()
+    return existing
+  }
+
+  const spec = WIDGETS[kind]
+  const saved = readStore()[kind]
+  const at = saved?.x != null ? { x: saved.x, y: saved.y } : cornerFor(spec)
+
+  const win = new BrowserWindow({
+    width: saved?.w ?? spec.w,
+    height: saved?.h ?? spec.h,
+    x: at.x,
+    y: at.y,
+    frame: false,
+    transparent: true,
+    resizable: true,
+    minWidth: 260,
+    minHeight: 200,
+    // over other apps, but never stealing focus from what he is typing into
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    fullscreenable: false,
+    vibrancy: 'under-window',
+    visualEffectState: 'active',
+    webPreferences: baseWebPrefs,
+  })
+
+  win.setAlwaysOnTop(true, 'floating')
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  win.loadURL(view('widget', `&kind=${kind}`))
+
+  const remember = () => {
+    const b = win.getBounds()
+    writeStore({ ...readStore(), [kind]: b })
+  }
+  win.on('moved', remember)
+  win.on('resized', remember)
+  win.on('closed', () => widgets.delete(kind))
+
+  widgets.set(kind, win)
+  tray?.setContextMenu(contextMenu())
+  return win
+}
+
+function toggleWidget(kind) {
+  const win = widgets.get(kind)
+  if (win && !win.isDestroyed()) {
+    win.close()
+    widgets.delete(kind)
+    tray?.setContextMenu(contextMenu())
+    return
+  }
+  openWidget(kind)
+}
+
+/* ---------------- tray ---------------- */
+
 function createTray() {
-  // a template image lets macOS invert it for light/dark menu bars; the mark is
-  // too detailed at 16px, so the tray uses the title text plus this as a fallback
   const iconPath = path.join(__dirname, '../fe/public/mark-32.png')
   let icon = nativeImage.createEmpty()
   try {
     const img = nativeImage.createFromPath(iconPath)
     if (!img.isEmpty()) icon = img.resize({ width: 18, height: 18 })
-  } catch { /* fall back to a text-only tray */ }
+  } catch { /* text-only tray is a fine fallback */ }
 
   tray = new Tray(icon)
   tray.setTitle(' LeadBoard ')
   tray.setToolTip('LeadBoard')
-
   tray.on('click', togglePopover)
   tray.on('right-click', () => tray.popUpContextMenu(contextMenu()))
+  tray.setContextMenu(contextMenu())
 }
 
 function contextMenu() {
@@ -54,10 +157,17 @@ function contextMenu() {
     { label: 'Capture  ⌥Space', click: showCapture },
     { label: 'Start standup', click: () => openMain('#/standup') },
     { type: 'separator' },
-    { label: 'Board', click: () => openMain('#/board') },
-    { label: 'People', click: () => openMain('#/people') },
-    { label: 'Inbox', click: () => openMain('#/inbox') },
+    {
+      label: 'Widgets',
+      submenu: Object.entries(WIDGETS).map(([kind, spec]) => ({
+        label: spec.label,
+        type: 'checkbox',
+        checked: widgets.has(kind) && !widgets.get(kind).isDestroyed(),
+        click: () => toggleWidget(kind),
+      })),
+    },
     { type: 'separator' },
+    { label: 'Open the board', click: () => openMain('#/') },
     {
       label: 'Launch at login',
       type: 'checkbox',
@@ -68,23 +178,16 @@ function contextMenu() {
   ])
 }
 
-/* ------------------------------------------------------------------ *
- * Popover — the 90% surface. Closes on blur so it never sits in the way.
- * ------------------------------------------------------------------ */
+/* ---------------- popover, capture, main ---------------- */
+
 function createPopover() {
   popover = new BrowserWindow({
-    width: 380,
-    height: 620,
-    show: false,
-    frame: false,
-    resizable: false,
-    fullscreenable: false,
-    skipTaskbar: true,
-    vibrancy: 'under-window',
-    visualEffectState: 'active',
+    width: 380, height: 620, show: false, frame: false, resizable: false,
+    fullscreenable: false, skipTaskbar: true,
+    vibrancy: 'under-window', visualEffectState: 'active',
     webPreferences: baseWebPrefs,
   })
-  popover.loadURL(url('popover'))
+  popover.loadURL(view('popover'))
   popover.on('blur', () => popover.hide())
 }
 
@@ -94,7 +197,8 @@ function togglePopover() {
   const { width } = popover.getBounds()
   const display = screen.getDisplayNearestPoint({ x, y })
   popover.setPosition(
-    Math.round(Math.min(Math.max(x - width / 2, display.workArea.x + 8), display.workArea.x + display.workArea.width - width - 8)),
+    Math.round(Math.min(Math.max(x - width / 2, display.workArea.x + 8),
+      display.workArea.x + display.workArea.width - width - 8)),
     Math.round(y + 6),
     false
   )
@@ -102,24 +206,13 @@ function togglePopover() {
   popover.focus()
 }
 
-/* ------------------------------------------------------------------ *
- * Capture overlay — ⌥Space from inside any app. This is the whole
- * "cheaper than paper" promise: no window to find, no page to turn.
- * ------------------------------------------------------------------ */
 function createCapture() {
   capture = new BrowserWindow({
-    width: 380,
-    height: 300,
-    show: false,
-    frame: false,
-    transparent: true,
-    alwaysOnTop: true,
-    resizable: false,
-    skipTaskbar: true,
-    vibrancy: 'hud',
+    width: 380, height: 300, show: false, frame: false, transparent: true,
+    alwaysOnTop: true, resizable: false, skipTaskbar: true, vibrancy: 'hud',
     webPreferences: baseWebPrefs,
   })
-  capture.loadURL(url('capture'))
+  capture.loadURL(view('capture'))
   capture.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   capture.on('blur', () => capture.hide())
 }
@@ -130,9 +223,6 @@ function showCapture() {
   capture.focus()
 }
 
-/* ------------------------------------------------------------------ *
- * Main window — depth on demand, which is not most of the time.
- * ------------------------------------------------------------------ */
 function openMain(route = '#/') {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.executeJavaScript(`location.hash = ${JSON.stringify(route)}`)
@@ -141,87 +231,79 @@ function openMain(route = '#/') {
     return
   }
   mainWindow = new BrowserWindow({
-    width: 1040,
-    height: 760,
-    titleBarStyle: 'hiddenInset',
-    backgroundColor: '#12131a',
-    webPreferences: baseWebPrefs,
+    width: 1100, height: 800, titleBarStyle: 'hiddenInset',
+    backgroundColor: '#100c19', webPreferences: baseWebPrefs,
   })
-  mainWindow.loadURL(DEV ? `${RENDERER}/${route}` : `${RENDERER}${route}`)
+  mainWindow.loadURL(`${BASE.replace(/\/$/, '')}/${route}`)
 }
 
-/* ------------------------------------------------------------------ *
- * Ambient state + nudges. Notifications are the reason paper loses:
- * the notebook cannot tap him on the shoulder.
- * ------------------------------------------------------------------ */
+/* ---------------- ambient state ---------------- */
+
 async function poll() {
   try {
     const res = await fetch(`${API}/today`)
-    if (!res.ok) throw new Error(res.statusText)
+    if (!res.ok) throw new Error(String(res.status))
     const data = await res.json()
 
     const bits = []
     if (data.streak) bits.push(`${data.streak}d`)
     if (data.badge.owed) bits.push(`${data.badge.owed} on me`)
     if (data.badge.atRisk) bits.push(`${data.badge.atRisk} due`)
-    tray.setTitle(bits.length ? ` ${bits.join(' ')} ` : '')
+    tray.setTitle(bits.length ? ` ${bits.join(' · ')} ` : ' LeadBoard ')
     tray.setToolTip(
       `LeadBoard\n${data.badge.owed} waiting on you · ${data.badge.atRisk} due soon · ${data.inboxCount} in inbox`
     )
-
     nudge(data)
   } catch {
-    tray.setTitle('')
-    tray.setToolTip('LeadBoard — API offline')
+    tray.setTitle(' LeadBoard ')
+    tray.setToolTip('LeadBoard — not signed in, or offline')
   }
 }
 
 function nudge(data) {
   const now = new Date()
   const today = now.toISOString().slice(0, 10)
-  const fire = (key, title, body, route) => {
+  const fire = (key, title, body, action) => {
     if (lastNudge[key] === today) return
     lastNudge[key] = today
-    const n = new Notification({ title, body, silent: false })
-    n.on('click', () => (route === 'capture' ? showCapture() : openMain(route)))
+    const n = new Notification({ title, body })
+    n.on('click', action)
     n.show()
   }
 
   if (!data.standupDone && now.getHours() >= STANDUP_HOUR && now.getDay() > 0 && now.getDay() < 6) {
-    fire(
-      'standup',
+    fire('standup',
       data.streak ? `Standup — keep the ${data.streak} day streak` : 'Standup time',
-      `${data.dueSoon.length} deadline${data.dueSoon.length === 1 ? '' : 's'} in the window · ${data.owed.length} waiting on you`,
-      '#/standup'
-    )
+      `${data.dueSoon.length} deadline${data.dueSoon.length === 1 ? '' : 's'} in the window · ${data.badge.owed} waiting on you`,
+      () => openMain('#/standup'))
   }
-
-  const stuck = data.owed.filter((b) => b.ageHours > 24)
+  const stuck = (data.tracks?.lead ?? []).filter((t) => (t.daysOnTask ?? 0) >= 1)
   if (stuck.length) {
-    fire('owed', `${stuck.length} thing${stuck.length === 1 ? '' : 's'} still waiting on you`, stuck.map((b) => b.item).join(', '), '#/')
-  }
-
-  if (now.getHours() >= 18 && data.inboxCount) {
-    fire('inbox', `${data.inboxCount} captures to place`, 'Two minutes now beats a blank morning.', '#/inbox')
+    fire('owed', `${stuck.length} thing${stuck.length === 1 ? '' : 's'} still waiting on you`,
+      stuck.map((t) => t.title).join(', '), () => openWidget('tasks'))
   }
 }
 
-/* ------------------------------------------------------------------ */
+/* ---------------- lifecycle ---------------- */
+
 app.whenReady().then(async () => {
   if (process.platform === 'darwin') app.dock?.hide()
-
-  // ask once, up front — a permission prompt in the middle of a thought is
-  // exactly the friction that sends him back to the notebook
   if (process.platform === 'darwin') {
-    try { await systemPreferences.askForMediaAccess('microphone') } catch {}
+    try { await systemPreferences.askForMediaAccess('microphone') } catch { /* declined */ }
   }
 
   createTray()
   createPopover()
   createCapture()
 
+  // whatever was open last time comes back
+  const saved = readStore()
+  for (const kind of Object.keys(WIDGETS)) if (saved[kind]?.open) openWidget(kind)
+
   globalShortcut.register('Alt+Space', showCapture)
   globalShortcut.register('CommandOrControl+Shift+L', () => openMain('#/'))
+  globalShortcut.register('CommandOrControl+Shift+T', () => toggleWidget('tasks'))
+  globalShortcut.register('CommandOrControl+Shift+F', () => toggleWidget('focus'))
 
   poll()
   setInterval(poll, POLL_MS)
@@ -229,6 +311,20 @@ app.whenReady().then(async () => {
 
 ipcMain.on('capture:close', () => capture?.hide())
 ipcMain.on('window:open', (_e, route) => openMain(route))
+ipcMain.on('widget:close', (e) => BrowserWindow.fromWebContents(e.sender)?.close())
+ipcMain.on('widget:open', (_e, kind) => WIDGETS[kind] && openWidget(kind))
+ipcMain.on('widget:pin', (e, pinned) => {
+  const win = BrowserWindow.fromWebContents(e.sender)
+  win?.setAlwaysOnTop(Boolean(pinned), 'floating')
+})
 
 app.on('window-all-closed', (e) => e.preventDefault()) // lives in the tray
+app.on('before-quit', () => {
+  // remember which widgets were open, not just where they were
+  const store = readStore()
+  for (const kind of Object.keys(WIDGETS)) {
+    store[kind] = { ...(store[kind] || {}), open: widgets.has(kind) }
+  }
+  writeStore(store)
+})
 app.on('will-quit', () => globalShortcut.unregisterAll())

@@ -1793,3 +1793,79 @@ input::placeholder { color: var(--text-3); }
   font-size: 12px; font-weight: 650; color: var(--c-primary);
   background: var(--info-bg); padding: 2px 9px; border-radius: var(--r-pill);
 }
+
+/* ============================================================
+   Desktop widgets — one feature, floating over real work
+   ============================================================ */
+.widget {
+  height: 100vh; display: flex; flex-direction: column;
+  background: color-mix(in srgb, var(--s-1) 92%, transparent);
+  border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+  box-shadow: 0 18px 50px rgb(37 19 81 / .28);
+}
+:root[data-theme='dark'] .widget { box-shadow: 0 18px 50px rgb(0 0 0 / .55); }
+
+.widget-bar {
+  display: flex; align-items: center; gap: 8px; flex: none;
+  padding: 10px 10px 10px 14px; border-bottom: 1px solid var(--line);
+  background: var(--s-2);
+}
+.widget-bar b { font-size: 13px; font-weight: 660; letter-spacing: -.01em; }
+.widget-bar .grow { flex: 1; }
+.widget-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--g-primary); flex: none; }
+
+.widget-btn {
+  width: 24px; height: 24px; border-radius: 7px; flex: none;
+  display: grid; place-items: center; color: var(--text-3);
+  transition: all .13s var(--ease);
+}
+.widget-btn:hover { background: var(--s-3); color: var(--text); }
+.widget-btn.on { color: var(--c-orange); }
+.widget-btn.close:hover { background: var(--bad-bg); color: var(--bad); }
+
+.widget-body { flex: 1; overflow-y: auto; padding: 8px; }
+.widget-body::-webkit-scrollbar { width: 8px; }
+.widget-body::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 99px; }
+
+.widget-head {
+  font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--text-3); padding: 12px 8px 6px;
+}
+.widget-row {
+  display: flex; align-items: flex-start; gap: 9px;
+  padding: 9px 9px; border-radius: 10px;
+  transition: background .13s var(--ease);
+}
+.widget-row:hover { background: var(--s-2); }
+.widget-row .body { flex: 1; min-width: 0; }
+.widget-row .t { font-size: 13px; font-weight: 550; line-height: 1.35; }
+.widget-row .m {
+  display: flex; gap: 5px; flex-wrap: wrap; align-items: center;
+  font-size: 11px; color: var(--text-3); margin-top: 3px;
+}
+.widget-row.muted-row .t { color: var(--text-2); font-weight: 500; }
+.widget-pip { width: 18px; height: 18px; border-radius: 99px; background: var(--s-3); flex: none; }
+
+.widget-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; height: 100%; color: var(--text-3); font-size: 12.5px; text-align: center; padding: 20px;
+}
+
+/* embedded surfaces fill the widget instead of the screen */
+.focus.embedded { position: static; height: 100%; padding: 16px; gap: 14px; background: transparent; }
+.focus.embedded .focus-setup h1 { font-size: 21px; }
+.focus.embedded .focus-setup > p { font-size: 12.5px; }
+.focus.embedded .focus-presets button,
+.focus.embedded .focus-presets input { width: 54px; height: 54px; border-radius: 14px; }
+.focus.embedded .focus-presets button b { font-size: 17px; }
+.focus.embedded .focus-ring { width: 190px; height: 190px; }
+.focus.embedded .focus-time { font-size: 36px; }
+.focus.embedded .focus-aura { display: none; }
+
+.notes-drawer.embedded {
+  position: static; width: 100%; height: 100%;
+  border: none; box-shadow: none; background: transparent; animation: none;
+}
+.notes-drawer.embedded .notes-bar { padding: 4px 6px 12px; border-bottom: 1px solid var(--line); }
+.notes-drawer.embedded .notes-body { padding: 0 2px 8px; }
+.notes-drawer.embedded .note-grid { grid-template-columns: 1fr; gap: 7px; }

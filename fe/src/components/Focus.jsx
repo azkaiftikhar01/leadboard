@@ -48,7 +48,7 @@ const mmss = (s) =>
  * is a feeling, and the feeling is what makes him sit through the last four
  * minutes. It breathes at roughly the pace of a slow exhale.
  */
-export function Focus({ open, onClose, onFinished }) {
+export function Focus({ open, onClose, onFinished, embedded = false }) {
   const [minutes, setMinutes] = useState(10)
   const [custom, setCustom] = useState('')
   const [label, setLabel] = useState('')
@@ -124,12 +124,14 @@ export function Focus({ open, onClose, onFinished }) {
   const C = 2 * Math.PI * R
 
   return (
-    <div className={`focus ${phase}`}>
+    <div className={`focus ${phase}${embedded ? ' embedded' : ''}`}>
       <div className="focus-aura" aria-hidden="true"><b /><b /><b /></div>
 
-      <button className="focus-x" onClick={phase === 'running' ? stop : onClose}>
-        <Icon.x size={18} />
-      </button>
+      {!embedded && (
+        <button className="focus-x" onClick={phase === 'running' ? stop : onClose}>
+          <Icon.x size={18} />
+        </button>
+      )}
 
       {phase === 'setup' && (
         <div className="focus-setup">

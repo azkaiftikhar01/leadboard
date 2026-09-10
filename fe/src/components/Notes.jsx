@@ -22,7 +22,7 @@ const when = (d) => {
  * he opens it so it never competes with the day's actual state, and it takes
  * dictation because most of these arrive mid-sentence.
  */
-export function Notes({ open, onClose }) {
+export function Notes({ open, onClose, embedded = false }) {
   const confirm = useConfirm()
   const [notes, setNotes] = useState([])
   const [editing, setEditing] = useState(null)   // note object or 'new'
@@ -90,8 +90,8 @@ export function Notes({ open, onClose }) {
 
   return (
     <>
-      <div className="notes-scrim" onClick={onClose} />
-      <aside className="notes-drawer">
+      {!embedded && <div className="notes-scrim" onClick={onClose} />}
+      <aside className={`notes-drawer${embedded ? ' embedded' : ''}`}>
         <header className="notes-bar">
           <span className="notes-ico"><Icon.note size={16} /></span>
           <b>Notes</b>
@@ -100,7 +100,9 @@ export function Notes({ open, onClose }) {
           <button className="btn primary sm" onClick={() => start(null)}>
             <Icon.plus size={13} /> New
           </button>
-          <button className="sheet-x" onClick={onClose} title="Close — Esc"><Icon.x size={16} /></button>
+          {!embedded && (
+            <button className="sheet-x" onClick={onClose} title="Close — Esc"><Icon.x size={16} /></button>
+          )}
         </header>
 
         <div className="notes-body">
