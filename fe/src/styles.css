@@ -1902,3 +1902,35 @@ input::placeholder { color: var(--text-3); }
   content: ''; position: absolute; left: 3px; top: 8px; bottom: 8px;
   width: 3px; border-radius: 3px; background: var(--task-color);
 }
+
+/* ---------- full-screen celebration (desktop only) ---------- */
+.celebrate {
+  position: fixed; inset: 0; display: grid; place-items: center;
+  background: transparent; pointer-events: none;
+}
+.celebrate-word {
+  font-size: 84px; font-weight: 800; letter-spacing: -.04em;
+  animation: cheer 2.6s var(--ease) both;
+}
+.celebrate-word.win {
+  color: #3DDC97;
+  text-shadow: 0 6px 40px rgb(61 220 151 / .5), 0 2px 8px rgb(0 0 0 / .25);
+}
+.celebrate-word.lose {
+  color: #B9B4C2;
+  text-shadow: 0 6px 40px rgb(120 114 130 / .45), 0 2px 8px rgb(0 0 0 / .25);
+  animation: groan 1.6s var(--ease) both;
+}
+@keyframes groan {
+  0%   { opacity: 0; transform: translateY(-24px) scale(1.05) }
+  20%  { opacity: 1; transform: translateY(0) scale(1) }
+  70%  { opacity: 1; transform: translateY(6px) }
+  100% { opacity: 0; transform: translateY(22px) scale(.96) }
+}
+@keyframes cheer {
+  0%   { opacity: 0; transform: scale(.7) }
+  14%  { opacity: 1; transform: scale(1.06) }
+  24%  { transform: scale(1) }
+  72%  { opacity: 1 }
+  100% { opacity: 0; transform: scale(1.04) }
+}

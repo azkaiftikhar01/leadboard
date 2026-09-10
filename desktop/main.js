@@ -35,6 +35,7 @@ let tray = null
 let popover = null
 let capture = null
 let mainWindow = null
+let party = null
 const widgets = new Map()
 let lastNudge = {}
 
@@ -132,6 +133,36 @@ function toggleWidget(kind) {
     return
   }
   openWidget(kind)
+}
+
+/**
+ * The celebration layer.
+ *
+ * Transparent, click-through and over everything, so a focus block finishing in
+ * a 300px widget still fills the screen. It never takes focus - he may well be
+ * typing in something else when the timer runs out, and a window that steals
+ * the keyboard to congratulate him is a punishment.
+ */
+function celebrate(mood = 'win') {
+  // a second call while one is on screen replaces it rather than stacking
+  if (party && !party.isDestroyed()) party.close()
+
+  const { bounds } = screen.getPrimaryDisplay()
+  party = new BrowserWindow({
+    x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height,
+    frame: false, transparent: true, resizable: false, movable: false,
+    skipTaskbar: true, focusable: false, hasShadow: false,
+    alwaysOnTop: true, enableLargerThanScreen: true,
+    webPreferences: baseWebPrefs,
+  })
+  party.setIgnoreMouseEvents(true, { forward: true })
+  party.setAlwaysOnTop(true, 'screen-saver')
+  party.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  party.loadURL(view('celebrate', `&mood=${mood === 'lose' ? 'lose' : 'win'}`))
+  party.on('closed', () => { party = null })
+  // a safety net, so a failed render never leaves a dead layer over the screen
+  setTimeout(() => { if (party && !party.isDestroyed()) party.close() }, 8000)
+  return true
 }
 
 /* ---------------- tray ---------------- */
@@ -317,6 +348,7 @@ ipcMain.on('capture:close', () => capture?.hide())
 ipcMain.on('window:open', (_e, route) => openMain(route))
 ipcMain.on('widget:close', (e) => BrowserWindow.fromWebContents(e.sender)?.close())
 ipcMain.on('widget:open', (_e, kind) => WIDGETS[kind] && openWidget(kind))
+ipcMain.handle('celebrate', (_e, mood) => celebrate(mood))
 ipcMain.on('widget:pin', (e, pinned) => {
   const win = BrowserWindow.fromWebContents(e.sender)
   win?.setAlwaysOnTop(Boolean(pinned), 'floating')

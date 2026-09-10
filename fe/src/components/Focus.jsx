@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import confetti from 'canvas-confetti'
 import { api } from '../lib/api.js'
+import { celebrateLocal, cheer, boo } from '../lib/celebrate.js'
 import { Icon } from './ui.jsx'
 
 const PRESETS = [10, 15, 25, 45]
@@ -69,10 +69,12 @@ export function Focus({ open, onClose, onFinished, embedded = false }) {
   const finish = useCallback(async () => {
     setPhase('done')
     chime()
-    confetti({ particleCount: 130, spread: 78, origin: { y: 0.62 }, disableForReducedMotion: true,
-               colors: ['#E57A44', '#F0954F', '#A8446F', '#C2536A', '#4A2A8C'] })
-    setTimeout(() => confetti({ particleCount: 70, spread: 100, origin: { y: 0.5 }, disableForReducedMotion: true,
-                                colors: ['#E57A44', '#A8446F'] }), 240)
+    // In the desktop app the celebration goes over the whole screen rather than
+    // being trapped in a 300px widget - a firework you cannot see is not one.
+    // Sound stays here either way: the celebration window is not focusable, and
+    // an unfocused window is a bad place to start audio.
+    if (!window.leadboard?.celebrate?.('win')) celebrateLocal('win')
+    else cheer()
     if (session.current) await api.endFocus(session.current, true).catch(() => {})
     session.current = null
     onFinished?.()
@@ -110,10 +112,17 @@ export function Focus({ open, onClose, onFinished, embedded = false }) {
   }
 
   const stop = async () => {
+    const wasRunning = phase === 'running'
     if (session.current) await api.endFocus(session.current, false).catch(() => {})
     session.current = null
     setPhase('setup')
     onFinished?.()
+    // giving up gets its own send-off, so quitting is a moment rather than a
+    // silent revert to the setup screen
+    if (wasRunning) {
+      if (!window.leadboard?.celebrate?.('lose')) celebrateLocal('lose')
+      else boo()
+    }
   }
 
   if (!open) return null

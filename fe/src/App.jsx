@@ -11,6 +11,7 @@ import { Start } from './views/Start.jsx'
 import { Lock } from './views/Lock.jsx'
 import { PublicBoard } from './views/PublicBoard.jsx'
 import { Widget } from './views/Widget.jsx'
+import { Celebrate } from './views/Celebrate.jsx'
 import { Mic } from './components/Mic.jsx'
 import { Dock } from './components/Dock.jsx'
 import { Palette } from './components/Palette.jsx'
@@ -132,6 +133,12 @@ export default function App() {
   // a shared link is its own front door: no passphrase, no dock, no board
   const shared = hash.match(/^#\/b\/(.+)$/)
   if (shared) return <PublicBoard token={decodeURIComponent(shared[1])} />
+
+  // The celebration layer carries no data, so it has no business behind the
+  // gate - it must never fail to appear because of a session hiccup.
+  if (view === 'celebrate') {
+    return <Celebrate mood={new URLSearchParams(location.search).get('mood') || 'win'} />
+  }
 
   if (authed === null) return <div className="lock"><span className="spinner" /></div>
   if (authed === false) return <Lock onIn={() => { setAuthed(true); pull() }} />
