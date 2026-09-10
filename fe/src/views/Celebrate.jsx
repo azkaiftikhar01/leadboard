@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { edgeBurst, WIN, LOSE } from '../lib/celebrate.js'
+import { edgeBurst, WIN } from '../lib/celebrate.js'
+import { throwTomatoes } from '../lib/tomatoes.js'
 
 /**
  * The full-screen celebration layer, shown only in the desktop app.
@@ -15,14 +16,12 @@ export function Celebrate({ mood = 'win' }) {
   const [gone, setGone] = useState(false)
 
   useEffect(() => {
-    edgeBurst({
-      colors: mood === 'lose' ? LOSE : WIN,
-      duration: mood === 'lose' ? 1500 : 2600,
-      onDone: () => {
-        setGone(true)
-        setTimeout(() => window.leadboard?.closeWidget?.(), 1500)
-      },
-    })
+    const finish = () => {
+      setGone(true)
+      setTimeout(() => window.leadboard?.closeWidget?.(), 1200)
+    }
+    if (mood === 'lose') return throwTomatoes({ count: 16, duration: 1700, onDone: finish })
+    edgeBurst({ colors: WIN, duration: 2600, onDone: finish })
   }, [mood])
 
   return (

@@ -1917,9 +1917,11 @@ input::placeholder { color: var(--text-3); }
   text-shadow: 0 6px 40px rgb(61 220 151 / .5), 0 2px 8px rgb(0 0 0 / .25);
 }
 .celebrate-word.lose {
-  color: #B9B4C2;
-  text-shadow: 0 6px 40px rgb(120 114 130 / .45), 0 2px 8px rgb(0 0 0 / .25);
-  animation: groan 1.6s var(--ease) both;
+  color: #C42B1C;
+  text-shadow: 0 6px 40px rgb(196 43 28 / .45), 0 2px 8px rgb(0 0 0 / .3);
+  animation: groan 1.9s var(--ease) both;
+  /* under the splats, so the tomatoes land on top of the word */
+  position: relative; z-index: 1;
 }
 @keyframes groan {
   0%   { opacity: 0; transform: translateY(-24px) scale(1.05) }

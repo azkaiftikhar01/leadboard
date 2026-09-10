@@ -1,4 +1,5 @@
 import confetti from 'canvas-confetti'
+import { throwTomatoes } from './tomatoes.js'
 
 export const WIN = ['#3DDC97', '#2E8C74', '#4FC2A3', '#12A37C', '#A7F3D0', '#FFFFFF']
 export const LOSE = ['#8E8A97', '#6F6B7A', '#B9B4C2', '#D4525F', '#4A4550']
@@ -112,8 +113,17 @@ export function boo() {
   say('Booo. Next time.', { pitch: 0.35, rate: 0.82, delay: 520 })
 }
 
-/** One call for both moods, so callers never have to remember which pairs with which. */
+/**
+ * One call for both moods, so callers never have to remember which pairs with
+ * which. Losing gets tomatoes rather than grey confetti - recolouring a
+ * celebration does not make it a heckle; the motion has to change.
+ */
 export function celebrateLocal(mood = 'win') {
-  edgeBurst({ colors: mood === 'lose' ? LOSE : WIN, duration: mood === 'lose' ? 1500 : 2600 })
-  mood === 'lose' ? boo() : cheer()
+  if (mood === 'lose') {
+    throwTomatoes({ count: 14, duration: 1600 })
+    boo()
+    return
+  }
+  edgeBurst({ colors: WIN, duration: 2600 })
+  cheer()
 }
