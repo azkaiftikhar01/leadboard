@@ -1846,6 +1846,39 @@ input::placeholder { color: var(--text-3); }
 .widget-row.muted-row .t { color: var(--text-2); font-weight: 500; }
 .widget-pip { width: 18px; height: 18px; border-radius: 99px; background: var(--s-3); flex: none; }
 
+/* the composer: a widget you can only read from is a widget he closes */
+.widget-add-open {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 9px; margin-bottom: 4px;
+  border: 1px dashed var(--line-2); border-radius: 10px; background: transparent;
+  color: var(--text-3); font: inherit; font-size: 12.5px; font-weight: 550; cursor: pointer;
+  transition: border-color .13s var(--ease), color .13s var(--ease), background .13s var(--ease);
+}
+.widget-add-open:hover { border-color: var(--brand); color: var(--brand); background: var(--s-2); }
+
+.widget-add {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 9px; margin-bottom: 6px;
+  border: 1px solid var(--line-2); border-radius: 12px; background: var(--s-2);
+}
+.widget-add input[type='text'] {
+  width: 100%; padding: 8px 9px; border: 1px solid var(--line-2); border-radius: 9px;
+  background: var(--s-1); color: var(--text-1); font: inherit; font-size: 13px;
+}
+.widget-add input[type='text']:focus { outline: none; border-color: var(--brand); }
+.widget-add-row { display: flex; gap: 6px; align-items: center; }
+.widget-add-row .grow { flex: 1; }
+.widget-add select,
+.widget-add input[type='datetime-local'] {
+  min-width: 0; padding: 6px 7px;
+  border: 1px solid var(--line-2); border-radius: 8px;
+  background: var(--s-1); color: var(--text-2); font: inherit; font-size: 11px;
+}
+/* the date needs the room — at an even split it clipped its own first digit */
+.widget-add select { flex: 1 1 40%; }
+.widget-add input[type='datetime-local'] { flex: 1 1 60%; }
+.widget-add-err { font-size: 11.5px; color: var(--red, #d9534f); }
+
 .widget-empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 10px; height: 100%; color: var(--text-3); font-size: 12.5px; text-align: center; padding: 20px;

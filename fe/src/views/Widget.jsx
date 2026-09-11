@@ -94,8 +94,10 @@ function TaskWidget() {
 
   return (
     <>
+      <AddTask onAdded={load} />
+
       {onMe.length === 0 && assigned.length === 0 ? (
-        <div className="widget-empty">
+        <div className="widget-empty" style={{ height: 'auto', padding: '28px 20px' }}>
           <Icon.check size={22} />
           <p>Nothing waiting on you.</p>
         </div>
@@ -140,6 +142,96 @@ function Row({ t, onTick, onEdit }) {
           {d && <Tag tone={d.tone}>{d.text}</Tag>}
         </div>
       </button>
+    </div>
+  )
+}
+
+/* ---------------- adding, without leaving the widget ---------------- */
+
+/**
+ * A task he thought of while the widget was the only LeadBoard on screen.
+ * The full sheet asks who it is pending on; here the answer is always "me",
+ * because that is what a widget titled "On me" is for. Everything else is
+ * one keystroke away in the full board.
+ */
+function AddTask({ onAdded }) {
+  const [open, setOpen] = useState(false)
+  const [title, setTitle] = useState('')
+  const [project, setProject] = useState('')
+  const [due, setDue] = useState('')
+  const [projects, setProjects] = useState([])
+  const [me, setMe] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+
+  useEffect(() => {
+    if (!open) return
+    api.projects().then((p) => {
+      setProjects(p)
+      setProject((cur) => cur || p[0]?._id || '')
+    }).catch((e) => setErr(e.message))
+    api.boards().then((b) => setMe(b.me ?? null)).catch(() => {})
+  }, [open])
+
+  const reset = () => { setTitle(''); setDue(''); setErr(null) }
+  const close = () => { setOpen(false); reset() }
+
+  const save = async () => {
+    if (!title.trim() || !project || busy) return
+    setBusy(true)
+    setErr(null)
+    try {
+      await api.addTask({
+        title: title.trim(),
+        project,
+        track: 'lead',
+        owner: me ?? null,
+        // datetime-local has no zone; Date reads it as local, which is the
+        // only reading that makes "17:30" mean half five to the person typing
+        dueDate: due ? new Date(due).toISOString() : undefined,
+        dueHasTime: Boolean(due),
+      })
+      reset()
+      onAdded?.()
+      setOpen(false)
+    } catch (e) { setErr(e.message) } finally { setBusy(false) }
+  }
+
+  if (!open) {
+    return (
+      <button className="widget-add-open" onClick={() => setOpen(true)}>
+        <Icon.plus size={13} /> Add a task
+      </button>
+    )
+  }
+
+  return (
+    <div className="widget-add">
+      <input
+        type="text" autoFocus value={title} placeholder="What needs doing?"
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') save()
+          if (e.key === 'Escape') close()
+        }}
+      />
+      <div className="widget-add-row">
+        <select value={project} onChange={(e) => setProject(e.target.value)}>
+          {projects.length === 0 && <option value="">No projects yet</option>}
+          {projects.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
+        </select>
+        <input
+          type="datetime-local" value={due} title="Due (optional)"
+          onChange={(e) => setDue(e.target.value)}
+        />
+      </div>
+      {err && <div className="widget-add-err">{err}</div>}
+      <div className="widget-add-row">
+        <button className="btn ghost sm" onClick={close}>Cancel</button>
+        <button className="btn primary sm grow" disabled={!title.trim() || !project || busy} onClick={save}>
+          {busy ? <span className="spinner" /> : 'Add'}
+        </button>
+      </div>
     </div>
   )
 }
