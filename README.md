@@ -8,6 +8,45 @@ becomes a five-minute guided ritual instead of a blank page. Dev performance —
 rework, deliveries, deadlines — is derived from work that already happens, never
 hand-maintained.
 
+**[Live demo](https://leadboard-two.vercel.app)** · Electron · React 19 · Express · MongoDB
+
+![Leadboard: the Today view](docs/screenshots/hero.webp)
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/02-standup-voice.webp" alt="Voice-guided standup"></td>
+    <td><img src="docs/screenshots/03-scoreboard-dark.webp" alt="Scoreboard, dark mode"></td>
+  </tr>
+</table>
+
+## Why I built it
+
+The lead it's built for ran everything from a paper notebook: who's blocked, what was
+promised to whom, which tasks keep coming back. Writing it down was the bottleneck.
+Leadboard lets him say it out loud instead. A capture like *"Hamza's PR bounced again,
+client changed the spec"* turns into a task update plus a rework event attributed to
+the client, and the scoreboard updates itself.
+
+## How it works
+
+```mermaid
+flowchart LR
+  mic["⌥Space capture<br/>(menu bar)"] --> stt["Speech to text<br/>Chrome / local Whisper"]
+  stt --> parse["Capture parser<br/>rules · Ollama · Claude"]
+  parse --> api["Express API"]
+  api --> db[("MongoDB<br/>tasks, rework, deliveries,<br/>blockers, captures")]
+  db --> score["Derived metrics<br/>reliability · rework index · cycle time"]
+  score --> ui["React renderer<br/>tray popover · window · web"]
+```
+
+- **One renderer, three shells.** The same Vite bundle runs in the tray popover, the
+  main window and a plain browser.
+- **Nothing is hand-scored.** Every task transition is appended to history, and a reopen
+  needs a one-tap reason. Reliability, rework and cycle time are all computed from those
+  events (see [DATA-MODEL.md](docs/DATA-MODEL.md)).
+- **Swappable providers.** Speech and parsing sit behind adapters, so it runs for free
+  by default. Raw transcripts are kept, which means a bad parse can always be replayed.
+
 ## Layout
 
 | Dir | What |
